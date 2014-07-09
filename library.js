@@ -1,9 +1,24 @@
 "use strict";
 
-var plugin = {};
+var Solr = {};
 
-plugin.init = function(app, middleware, controllers) {
-	console.log('nodebb-plugin-quickstart: loaded');
+Solr.init = function(app, middleware, controllers) {
+	function render(req, res, next) {
+		res.render('admin/plugins/solr', {});
+	}
+
+	app.get('/admin/plugins/solr', middleware.admin.buildHeader, render);
+	app.get('/api/admin/plugins/solr', render);
 };
 
-module.exports = plugin;
+Solr.adminMenu = function(custom_header, callback) {
+	custom_header.plugins.push({
+		"route": '/plugins/solr',
+		"icon": 'fa-search',
+		"name": 'Apache Solr'
+	});
+
+	callback(null, custom_header);
+};
+
+module.exports = Solr;

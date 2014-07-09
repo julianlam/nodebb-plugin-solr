@@ -1,0 +1,1 @@
+<h1><i class="fa fa-search"></i> Apache Solr</h1>

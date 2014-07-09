@@ -1,11 +1,11 @@
 {
-  "name": "nodebb-plugin-quickstart",
-  "version": "0.0.1",
-  "description": "A starter kit for quickly creating NodeBB plugins",
+  "name": "nodebb-plugin-solr",
+  "version": "0.0.0",
+  "description": "Full-text searching for NodeBB using Apache Solr",
   "main": "library.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/psychobunny/nodebb-plugin-quickstart"
+    "url": "https://github.com/julianlam/nodebb-plugin-solr"
   },
   "keywords": [
     "nodebb",
@@ -14,12 +14,12 @@
     "shell"
   ],
   "author": {
-    "name": "psychobunny",
-    "email": "psycho.bunny@hotmail.com"
+    "name": "julianlam",
+    "email": "julian@nodebb.org"
   },
   "license": "BSD-2-Clause",
   "bugs": {
-    "url": "https://github.com/psychobunny/nodebb-plugin-quickstart/issues"
+    "url": "https://github.com/julianlam/nodebb-plugin-solr/issues"
   },
   "readmeFilename": "README.md"
 }

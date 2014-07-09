@@ -1,20 +1,17 @@
-# Quickstart Plugin for NodeBB
+# Solr Search for NodeBB
 
-A starter kit for quickly creating NodeBB plugins. Comes with a pre-setup LESS file, server side JS script with an `action:app.load` hook, and a client-side script. Most plugins need at least one of the above, so this ought to save you some time. For a full list of hooks have a look at the [documentation](https://github.com/NodeBB/NodeBB/wiki/List-of-Hooks).
+[From Wikipedia](http://en.wikipedia.org/wiki/Apache_Solr):
+> Solr (pronounced "solar") is an open source enterprise search platform from the Apache Lucene project. Its major features include full-text search, hit highlighting, faceted search, dynamic clustering, database integration, and rich document (e.g., Word, PDF) handling.
 
-Fork this or copy it, and using your favourite text editor find and replace all instances of `nodebb-plugin-quickstart` with `nodebb-plugin-your-plugins-name`. Change the author's name in the LICENSE and package.json files.
+This plugin extends NodeBB to utilise an installation of Apache Solr as a search backend.
 
-Once you're done don't forget to publish it on NPM, and make a thread about it [here](https://docs.nodebb.org/en/latest/plugins/hooks.html).
+## Configuration
 
-
-## Hello World
-
-Really simple, just edit `static/lib/main.js` and paste in `console.log('hello world');`, and that's it!
+1. Install this plugin via npm: `npm install nodebb-plugin-solr`
+1. Activate it in the Plugins page
+1. Restart NodeBB
+1. Check that the plugin has successfully connected to the search engine. If not, adjust as necessary.
 
 ## Installation
 
-    npm install nodebb-plugin-quickstart
-
-## Screenshots
-
-Don't forget to add screenshots!
+    npm install nodebb-plugin-solr
