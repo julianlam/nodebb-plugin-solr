@@ -52,11 +52,8 @@
 				app.alert({
 					type: 'success',
 					alert_id: 'solr-saved',
-					title: 'Settings Saved'/*,*/
-					// message: 'Please restart your NodeBB to complete configuration of the Pushbullet plugin',
-					// clickfn: function() {
-					// 	socket.emit('admin.restart');
-					// }
+					title: 'Settings Saved',
+					timeout: 2500
 				});
 
 				// Short delay to allow new Solr object to be created, server-side.
