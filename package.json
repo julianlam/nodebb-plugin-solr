@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/julianlam/nodebb-plugin-solr/issues"
   },
-  "readmeFilename": "README.md"
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "solr-client": "^0.2.9"
+  }
 }
