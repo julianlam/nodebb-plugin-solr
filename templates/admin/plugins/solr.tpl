@@ -41,6 +41,24 @@
 				<!-- ENDIF ping -->
 			</div>
 		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<h3 class="panel-title">
+					Statistics
+				</h3>
+			</div>
+			<div class="panel-body">
+				<!-- IF stats -->
+				<p>
+					Total items indexed: {stats.total}
+				</p>
+				<!-- ELSE -->
+				<p>
+					There are no statistics to report.
+				</p>
+				<!-- ENDIF stats -->
+			</div>
+		</div>
 	</div>
 </div>
 <script>
