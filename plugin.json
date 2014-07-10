@@ -14,7 +14,7 @@
         { "hook": "action:post.restore", "method": "post.restore"},
         { "hook": "action:post.edit", "method": "post.edit"},
 
-        { "hook": "action:topic.save", "method": "topic.save"},
+        { "hook": "action:topic.post", "method": "topic.post"},
         { "hook": "action:topic.delete", "method": "topic.delete"},
         { "hook": "action:topic.restore", "method": "topic.restore"},
         { "hook": "action:topic.edit", "method": "topic.edit"},

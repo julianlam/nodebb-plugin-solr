@@ -1,5 +1,7 @@
 "use strict";
 
+/* globals console, module, require */
+
 var db = module.parent.require('./database'),
 	winston = module.parent.require('winston'),
 	engine = require('solr-client'),
@@ -45,11 +47,7 @@ Solr.getSettings = function(callback) {
 };
 
 Solr.getRecordCount = function(callback) {
-	var query = Solr.client.createQuery()
-			.q('*:*')
-			.dismax()
-			.start(0)
-			.rows(0);
+	var query = Solr.client.createQuery().q('*:*').start(0).rows(0);
 
 	Solr.client.search(query, function(err, obj) {
 		if (!err) {
@@ -86,20 +84,20 @@ Solr.adminMenu = function(custom_header, callback) {
 };
 
 Solr.search = function(data, callback) {
-	var qf = data.index === 'topic' ? { title_t: 1 } : { description_t: 1 },
-		query = Solr.client.createQuery()
-			.q(data.query)
-			.dismax()
-			.qf(qf)
-			.start(0)
-			.rows(20);
+	if (data.index === 'topic') {
+		// We are only using the "post" index, because Solr does its own relevency sorting
+		return callback(null, []);
+	}
+
+	var query = Solr.client.createQuery().q(data.query).dismax().qf({
+			title_t: 1.5,
+			description_t: 1
+		}).start(0).rows(20);
 
 	Solr.client.search(query, function(err, obj) {
-		// ok reached a natural stopping point here.
-		// NodeBB search calls this method twice, once for topic and once for post... but the search page only lists 1 set of results? I am confused.
 		if (obj.response.docs.length > 0) {
 			callback(null, obj.response.docs.map(function(result) {
-				return result.id.split(':')[1];
+				return result.id;
 			}));
 		} else {
 			callback(null, []);
@@ -107,47 +105,98 @@ Solr.search = function(data, callback) {
 	});
 };
 
-Solr.post = {};
-Solr.post.save = function(postData) {
-	Solr.client.add({
-		id: 'post:' + postData.pid,
-		description_t: postData.content
-	}, function(err, obj) {
+Solr.add = function(payload) {
+	Solr.getById(payload.id, function(err, data) {
+		for(var key in payload) {
+			if (payload.hasOwnProperty(key)) {
+				data[key] = payload[key];
+			}
+		}
+
+		Solr.client.add(data, function(err, obj) {
+			if (err) {
+				winston.error('[plugins/solr] Could not index post ' + payload.id);
+			}
+		});
+	});
+};
+
+Solr.remove = function(pid) {
+	Solr.client.delete('id', pid, function(err, obj) {
 		if (err) {
-			winston.error('[plugins/solr] Could not index post ' + postData.pid);
+			winston.error('[plugins/solr] Could not remove post ' + pid + ' from index');
 		}
 	});
 };
 
-Solr.post.delete = function() {
-	console.log(arguments);
-};
+Solr.getById = function(id, callback) {
+	var	query = Solr.client.createQuery().q(id).dismax().qf({
+			id: 1
+		}).rows(1);
 
-Solr.post.restore = function() {
-	console.log(arguments);
-};
-
-Solr.post.edit = function() {
-	console.log(arguments);
-};
-
-Solr.topic = {};
-Solr.topic.save = function(tid) {
-	topics.getTopicData(tid, function(err, topicObj) {
-		console.log(arguments);
+	Solr.client.search(query, function(err, obj) {
+		if (!err && obj.response.docs.length > 0) {
+			callback(null, obj.response.docs[0]);
+		} else {
+			callback(null, {});
+		}
 	});
 };
 
-Solr.topic.delete = function() {
-	console.log(arguments);
+Solr.post = {};
+Solr.post.save = function(postData) {
+	Solr.add({
+		id: postData.pid,
+		description_t: postData.content
+	});
 };
 
-Solr.topic.restore = function() {
-	console.log(arguments);
+Solr.post.delete = function(pid) {
+	Solr.remove(pid);
 };
 
-Solr.topic.edit = function() {
-	console.log(arguments);
+Solr.post.restore = function(postData) {
+	Solr.add({
+		id: postData.pid,
+		description_t: postData.content
+	});
+};
+
+Solr.post.edit = Solr.post.restore;
+
+Solr.topic = {};
+Solr.topic.post = function(topicObj) {
+	Solr.add({
+		id: topicObj.mainPid,
+		title_t: topicObj.title
+	});
+};
+
+Solr.topic.delete = function(tid) {
+	topics.getTopicField(tid, 'mainPid', function(err, mainPid) {
+		Solr.remove(mainPid);
+	});
+};
+
+Solr.topic.restore = function(tid) {
+	topics.getTopicFields(tid, ['mainPid', 'title'], function(err, topicData) {
+		posts.getPostField(topicData.mainPid, 'content', function(err, content) {
+			Solr.add({
+				id: topicData.mainPid,
+				title_t: topicData.title,
+				description_t: content
+			});
+		});
+	});
+};
+
+Solr.topic.edit = function(tid) {
+	topics.getTopicFields(tid, ['mainPid', 'title'], function(err, topicData) {
+		Solr.add({
+			id: topicData.mainPid,
+			title_t: topicData.title
+		});
+	});
 };
 
 module.exports = Solr;
