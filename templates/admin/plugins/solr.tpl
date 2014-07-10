@@ -3,7 +3,7 @@
 <div class="row">
 	<div class="col-sm-8">
 		<h2>Client Configuration</h2>
-		<form role="form">
+		<form role="form" class="solr-settings">
 			<div class="form-group">
 				<label for="host">Host</label>
 				<input class="form-control" type="text" name="host" id="host" placeholder="127.0.0.1" />
@@ -12,7 +12,7 @@
 				<label for="port">Port</label>
 				<input class="form-control" type="text" name="port" id="port" placeholder="8983" />
 			</div>
-			<button type="button" class="btn btn-primary btn-block">Save</button>
+			<button id="save" type="button" class="btn btn-primary btn-block">Save</button>
 		</form>
 	</div>
 	<div class="col-sm-4">
@@ -42,3 +42,28 @@
 			</div>
 		</div>
 	</div>
+</div>
+<script>
+	require(['settings'], function(Settings) {
+		Settings.load('solr', $('.solr-settings'));
+
+		$('#save').on('click', function() {
+			Settings.save('solr', $('.solr-settings'), function() {
+				app.alert({
+					type: 'success',
+					alert_id: 'solr-saved',
+					title: 'Settings Saved'/*,*/
+					// message: 'Please restart your NodeBB to complete configuration of the Pushbullet plugin',
+					// clickfn: function() {
+					// 	socket.emit('admin.restart');
+					// }
+				});
+
+				// Short delay to allow new Solr object to be created, server-side.
+				setTimeout(function() {
+					ajaxify.refresh();
+				}, 250);
+			});
+		});
+	});
+</script>

@@ -23,11 +23,12 @@ Solr.init = function(app, middleware, controllers) {
 };
 
 Solr.getSettings = function(callback) {
-	db.getObject('solr:config', function(err, config) {
+	db.getObject('settings:solr', function(err, config) {
+		Solr.config = {};
 		if (!err) {
 			for(var k in config) {
-				if (config.hasOwnProperty(k) && !Solr.config.hasOwnProperty(k)) {
-					Solr.config = config[k];
+				if (config.hasOwnProperty(k) && config[k].length && !Solr.config.hasOwnProperty(k)) {
+					Solr.config[k] = config[k];
 				}
 			}
 		} else {
@@ -38,7 +39,17 @@ Solr.getSettings = function(callback) {
 	});
 };
 
+Solr.onConfigChange = function(hash) {
+	if (hash === 'settings:solr') {
+		Solr.getSettings(Solr.connect);
+	}
+};
+
 Solr.connect = function() {
+	if (Solr.client) {
+		delete Solr.client;
+	}
+
 	Solr.client = engine.createClient(Solr.config);
 };
 
