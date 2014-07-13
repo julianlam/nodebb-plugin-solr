@@ -29,6 +29,14 @@ Solr.init = function(app, middleware, controllers) {
 	Solr.getSettings(Solr.connect);
 };
 
+Solr.checkConflict = function() {
+	if (module.parent.exports.libraries['nodebb-plugin-dbsearch']) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 Solr.getSettings = function(callback) {
 	db.getObject('settings:solr', function(err, config) {
 		Solr.config = {};
@@ -84,7 +92,11 @@ Solr.adminMenu = function(custom_header, callback) {
 };
 
 Solr.search = function(data, callback) {
-	if (data.index === 'topic') {
+	if (Solr.checkConflict()) {
+		// The dbsearch plugin was detected, abort search!
+		winston.warn('[plugin/solr] Another search plugin (dbsearch) is enabled, so search via Solr was aborted.');
+		return callback(null, data);
+	} else if (data.index === 'topic') {
 		// We are only using the "post" index, because Solr does its own relevency sorting
 		return callback(null, []);
 	}
