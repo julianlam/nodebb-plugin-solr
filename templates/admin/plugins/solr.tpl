@@ -14,6 +14,14 @@
 			</div>
 			<button id="save" type="button" class="btn btn-primary btn-block">Save</button>
 		</form>
+
+		<h2>Advanced Options</h2>
+		<button class="btn btn-danger" data-action="flush">Flush Search Index</button>
+		<p class="help-block">
+			Flushing the search index will remove all references to searchable assets
+			in the Solr backend, and your users will no longer be able to search for
+			topics. New topics and posts made after a flush will still be indexed.
+		</p>
 	</div>
 	<div class="col-sm-4">
 		<div class="panel panel-default">
@@ -62,22 +70,52 @@
 	</div>
 </div>
 <script>
-	require(['settings'], function(Settings) {
-		Settings.load('solr', $('.solr-settings'));
+	$(document).ready(function() {
+		var	csrf = '{csrf_token}';
+		alert('{relative_path}');
+		
+		// Flush event
+		$('button[data-action="flush"]').on('click', function() {
+			bootbox.confirm('Are you sure you wish to empty the Solr search index?', function(confirm) {
+				if (confirm) {
+					$.ajax({
+						url: config.relative_path + '/admin/plugins/solr/flush',
+						type: 'DELETE',
+						data: {
+							_csrf: csrf
+						}
+					}).success(function() {
+						ajaxify.refresh();
 
-		$('#save').on('click', function() {
-			Settings.save('solr', $('.solr-settings'), function() {
-				app.alert({
-					type: 'success',
-					alert_id: 'solr-saved',
-					title: 'Settings Saved',
-					timeout: 2500
+						app.alert({
+							type: 'success',
+							alert_id: 'solr-flushed',
+							title: 'Search index flushed',
+							timeout: 2500
+						});
+					});
+				}
+			});
+		});
+
+		// Settings form event
+		require(['settings'], function(Settings) {
+			Settings.load('solr', $('.solr-settings'));
+
+			$('#save').on('click', function() {
+				Settings.save('solr', $('.solr-settings'), function() {
+					app.alert({
+						type: 'success',
+						alert_id: 'solr-saved',
+						title: 'Settings Saved',
+						timeout: 2500
+					});
+
+					// Short delay to allow new Solr object to be created, server-side.
+					setTimeout(function() {
+						ajaxify.refresh();
+					}, 250);
 				});
-
-				// Short delay to allow new Solr object to be created, server-side.
-				setTimeout(function() {
-					ajaxify.refresh();
-				}, 250);
 			});
 		});
 	});

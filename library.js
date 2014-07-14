@@ -26,6 +26,9 @@ Solr.init = function(app, middleware, controllers) {
 	app.get('/admin/plugins/solr', middleware.admin.buildHeader, pluginMiddleware.ping, pluginMiddleware.getStats, render);
 	app.get('/api/admin/plugins/solr', pluginMiddleware.ping, pluginMiddleware.getStats, render);
 
+	// Utility
+	app.delete('/admin/plugins/solr/flush', middleware.admin.isAdmin, Solr.flush);
+
 	Solr.getSettings(Solr.connect);
 };
 
@@ -117,7 +120,7 @@ Solr.search = function(data, callback) {
 	});
 };
 
-Solr.add = function(payload) {
+Solr.add = function(payload, callback) {
 	Solr.getById(payload.id, function(err, data) {
 		for(var key in payload) {
 			if (payload.hasOwnProperty(key)) {
@@ -128,6 +131,8 @@ Solr.add = function(payload) {
 		Solr.client.add(data, function(err, obj) {
 			if (err) {
 				winston.error('[plugins/solr] Could not index post ' + payload.id);
+			} else if (typeof callback === 'function') {
+				callback.apply(arguments);
 			}
 		});
 	});
@@ -137,6 +142,17 @@ Solr.remove = function(pid) {
 	Solr.client.delete('id', pid, function(err, obj) {
 		if (err) {
 			winston.error('[plugins/solr] Could not remove post ' + pid + ' from index');
+		}
+	});
+};
+
+Solr.flush = function(req, res) {
+	Solr.client.delete('id','*', function (err, obj){
+		if (err) {
+			winston.error('[plugins/solr] Could not empty the search index');
+			res.send(500, err.message);
+		} else {
+			res.send(200);
 		}
 	});
 };
@@ -163,8 +179,12 @@ Solr.post.save = function(postData) {
 	});
 };
 
-Solr.post.delete = function(pid) {
+Solr.post.delete = function(pid, callback) {
 	Solr.remove(pid);
+
+	if (typeof callback === 'function') {
+		callback();
+	}
 };
 
 Solr.post.restore = function(postData) {
@@ -210,5 +230,43 @@ Solr.topic.edit = function(tid) {
 		});
 	});
 };
+
+/* Topic and Post indexing methods */
+
+Solr.indexTopic = function(tid, callback) {
+	async.parallel({
+		title: async.apply(Topics.getTopicField, tid, 'title'),
+		pids: async.apply(Topics.getPids, tid)
+	}, function(err, data) {
+		Solr.add({
+			id: tid,
+			title_t: data.title
+		});
+
+		async.eachLimit(data.pids, 100, Solr.indexPost, function(err) {
+			if (err) {
+				winston.error('[plugins/solr] Encountered an error while indexing tid ' + tid);
+				callback(err);
+			} else {
+				callback();
+			}
+		});
+	});
+};
+
+Solr.deindexTopic = function(tid) {
+
+};
+
+Solr.indexPost = function(pid, callback) {
+	Posts.getPostField(pid, 'content', function(err, content) {
+		Solr.add({
+			id: pid,
+			description_t: content
+		}, callback);
+	});
+};
+
+Solr.deindexPost = Solr.post.delete;
 
 module.exports = Solr;
