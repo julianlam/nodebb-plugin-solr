@@ -1,10 +1,11 @@
 "use strict";
 
-/* globals console, module, require */
+/* globals module, require */
 
 var db = module.parent.require('./database'),
 	winston = module.parent.require('winston'),
 	engine = require('solr-client'),
+	async = module.parent.require('async'),
 
 	topics = module.parent.require('./topics'),
 	posts = module.parent.require('./posts'),
@@ -27,6 +28,7 @@ Solr.init = function(app, middleware, controllers) {
 	app.get('/api/admin/plugins/solr', pluginMiddleware.ping, pluginMiddleware.getStats, render);
 
 	// Utility
+	app.post('/admin/plugins/solr/rebuild', middleware.admin.isAdmin, Solr.rebuildIndex);
 	app.delete('/admin/plugins/solr/flush', middleware.admin.isAdmin, Solr.flush);
 
 	Solr.getSettings(Solr.connect);
@@ -104,6 +106,8 @@ Solr.search = function(data, callback) {
 		return callback(null, []);
 	}
 
+	winston.info('[plugin/solr] Conducting search for: "' + data.query + '"');
+
 	var query = Solr.client.createQuery().q(data.query).dismax().qf({
 			title_t: 1.5,
 			description_t: 1
@@ -121,20 +125,12 @@ Solr.search = function(data, callback) {
 };
 
 Solr.add = function(payload, callback) {
-	Solr.getById(payload.id, function(err, data) {
-		for(var key in payload) {
-			if (payload.hasOwnProperty(key)) {
-				data[key] = payload[key];
-			}
+	Solr.client.add(payload, function(err, obj) {
+		if (err) {
+			winston.error('[plugins/solr] Could not index post ' + payload.id + ', error: ' + err.message);
+		} else if (typeof callback === 'function') {
+			callback.apply(arguments);
 		}
-
-		Solr.client.add(data, function(err, obj) {
-			if (err) {
-				winston.error('[plugins/solr] Could not index post ' + payload.id);
-			} else if (typeof callback === 'function') {
-				callback.apply(arguments);
-			}
-		});
 	});
 };
 
@@ -145,6 +141,19 @@ Solr.remove = function(pid) {
 		}
 	});
 };
+
+// Solr.commit = function(callback) {
+// 	Solr.client.commit(function(err, obj) {
+// 		if (err) {
+// 			winston.error('[plugins/solr] Could not commit changes to the index');
+// 		}
+
+// 		winston.info('[plugins/solr] Committing to index');
+// 		if (typeof callback === 'function') {
+// 			callback.apply(arguments);
+// 		}
+// 	});
+// };
 
 Solr.flush = function(req, res) {
 	Solr.client.delete('id','*', function (err, obj){
@@ -235,20 +244,27 @@ Solr.topic.edit = function(tid) {
 
 Solr.indexTopic = function(tid, callback) {
 	async.parallel({
-		title: async.apply(Topics.getTopicField, tid, 'title'),
-		pids: async.apply(Topics.getPids, tid)
+		topic: async.apply(topics.getTopicFields, tid, ['title', 'mainPid']),
+		pids: async.apply(topics.getPids, tid)
 	}, function(err, data) {
-		Solr.add({
-			id: tid,
-			title_t: data.title
-		});
+		// Solr.add({
+		// 	id: data.topic.mainPid,
+		// 	title_t: data.topic.title
+		// }, true);
 
-		async.eachLimit(data.pids, 100, Solr.indexPost, function(err) {
+		// Add OP to the list of pids to index
+		if (data.topic.mainPid) {
+			data.pids.unshift(data.topic.mainPid);
+		}
+
+		async.map(data.pids, Solr.indexPost, function(err, payload) {
 			if (err) {
-				winston.error('[plugins/solr] Encountered an error while indexing tid ' + tid);
-				callback(err);
+				winston.error('[plugins/solr] Encountered an error while compiling post data for tid ' + tid);
+				if (callback) callback(err);
+			} else if (typeof callback === 'function') {
+				callback(undefined, payload);
 			} else {
-				callback();
+				Solr.add(payload, callback);
 			}
 		});
 	});
@@ -259,14 +275,42 @@ Solr.deindexTopic = function(tid) {
 };
 
 Solr.indexPost = function(pid, callback) {
-	Posts.getPostField(pid, 'content', function(err, content) {
-		Solr.add({
-			id: pid,
-			description_t: content
-		}, callback);
+	posts.getPostField(pid, 'content', function(err, content) {
+		if (typeof callback === 'function') {
+			callback(undefined, {
+				id: pid,
+				description_t: content
+			});
+		} else {
+			Solr.add({
+				id: pid,
+				description_t: content
+			});
+		}
 	});
 };
 
 Solr.deindexPost = Solr.post.delete;
+
+Solr.rebuildIndex = function(req, res) {
+	db.getSortedSetRange('topics:tid', 0, -1, function(err, tids) {
+		if (err) {
+			winston.error('[plugins/solr] Could not retrieve topic listing for indexing');
+		} else {
+			async.map(tids, Solr.indexTopic, function(err, topicPayloads) {
+				var payload = [];
+				for(var x=0,numTopics=topicPayloads.length;x<numTopics;x++) {
+					payload = payload.concat(topicPayloads[x]);
+				}
+
+				Solr.add(payload, function(err, obj) {
+					if (!err) {
+						res.send(200);
+					}
+				});
+			});
+		}
+	});
+};
 
 module.exports = Solr;

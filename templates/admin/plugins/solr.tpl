@@ -16,6 +16,12 @@
 		</form>
 
 		<h2>Advanced Options</h2>
+		<button class="btn btn-success" data-action="rebuild">Rebuild Search Index</button>
+		<p class="help-block">
+			This option reads every topic and post saved in the database and adds it to the search index.
+			Any topics already indexed will have their contents replaced, so there is no need to flush
+			the index prior to re-indexing.
+		</p>
 		<button class="btn btn-danger" data-action="flush">Flush Search Index</button>
 		<p class="help-block">
 			Flushing the search index will remove all references to searchable assets
@@ -71,7 +77,7 @@
 </div>
 <script>
 	$(document).ready(function() {
-		var	csrf = '{csrf_token}';
+		var	csrf = '{csrf_token}' || $('#csrf_token').val();
 		
 		// Flush event
 		$('button[data-action="flush"]').on('click', function() {
@@ -90,6 +96,37 @@
 							type: 'success',
 							alert_id: 'solr-flushed',
 							title: 'Search index flushed',
+							timeout: 2500
+						});
+					});
+				}
+			});
+		});
+
+		// Index All event
+		$('button[data-action="rebuild"]').on('click', function() {
+			bootbox.confirm('Rebuild search index?', function(confirm) {
+				if (confirm) {
+					app.alert({
+						type: 'info',
+						alert_id: 'solr-rebuilt',
+						title: '<i class="fa fa-refresh fa-spin"></i> Rebuilding search index...',
+						timeout: 2500
+					});
+
+					$.ajax({
+						url: config.relative_path + '/admin/plugins/solr/rebuild',
+						type: 'POST',
+						data: {
+							_csrf: csrf
+						}
+					}).success(function() {
+						ajaxify.refresh();
+
+						app.alert({
+							type: 'success',
+							alert_id: 'solr-rebuilt',
+							title: 'Search index rebuilt',
 							timeout: 2500
 						});
 					});
