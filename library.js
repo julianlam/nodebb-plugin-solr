@@ -15,7 +15,7 @@ var db = module.parent.require('./database'),
 		client: undefined
 	};
 
-Solr.init = function(app, middleware, controllers) {
+Solr.init = function(app, middleware, controllers, callback) {
 	var pluginMiddleware = require('./middleware'),
 		render = function(req, res, next) {
 			res.render('admin/plugins/solr', {
@@ -32,6 +32,8 @@ Solr.init = function(app, middleware, controllers) {
 	app.delete('/admin/plugins/solr/flush', middleware.admin.isAdmin, Solr.flush);
 
 	Solr.getSettings(Solr.connect);
+
+	callback();
 };
 
 Solr.checkConflict = function() {
@@ -40,7 +42,7 @@ Solr.checkConflict = function() {
 	} else {
 		return false;
 	}
-}
+};
 
 Solr.getSettings = function(callback) {
 	db.getObject('settings:solr', function(err, config) {

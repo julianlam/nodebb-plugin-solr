@@ -5,7 +5,7 @@
 	"url": "https://github.com/julianlam/nodebb-plugin-solr",
 	"library": "./library.js",
 	"hooks": [
-		{ "hook": "action:app.load", "method": "init", "priority": 5 },
+		{ "hook": "filter:app.load", "method": "init", "priority": 5 },
 		{ "hook": "filter:admin.header.build", "method": "adminMenu" },
 		{ "hook": "action:settings.set", "method": "onConfigChange" },
 
@@ -24,5 +24,6 @@
 	"less": [
 		"static/style.less"
 	],
-	"templates": "templates"
+	"templates": "templates",
+	"compatibility": "~0.5.0"
 }
