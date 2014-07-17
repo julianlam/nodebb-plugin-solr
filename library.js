@@ -10,6 +10,13 @@ var db = module.parent.require('./database'),
 	topics = module.parent.require('./topics'),
 	posts = module.parent.require('./posts'),
 
+	// This method is necessary until solr-client 0.3.x is released
+	escapeSpecialChars = function(s) {
+		return s.replace(/([\+\-&\|!\(\)\{\}\[\]\^"~\*\?:\\\ ])/g, function(match) {
+			return '\\' + match;
+		});
+	},
+
 	Solr = {
 		config: {},	// default is localhost:8983, '' core, '/solr' path
 		client: undefined
@@ -149,6 +156,29 @@ Solr.search = function(data, callback) {
 		} else {
 			callback(null, []);
 		}
+	});
+};
+
+Solr.searchTopic = function(tid, term, callback) {
+	async.parallel({
+		mainPid: async.apply(topics.getTopicField, tid, 'mainPid'),
+		pids: async.apply(topics.getPids, tid)
+	}, function(err, data) {
+		data.pids.unshift(data.mainPid);
+		var query = Solr.client.createQuery().q({
+				description_t: escapeSpecialChars(term),
+				id: '(' + data.pids.join(' OR ') + ')'
+			});
+
+		Solr.client.search(query, function(err, obj) {
+			if (obj.response.docs.length > 0) {
+				callback(null, obj.response.docs.map(function(result) {
+					return result.id;
+				}));
+			} else {
+				callback(null, []);
+			}
+		});
 	});
 };
 
