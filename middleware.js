@@ -1,4 +1,5 @@
 var	Solr = module.parent.exports,
+	async = module.parent.parent.require('async'),
 
 	Middleware = {};
 
@@ -10,10 +11,14 @@ Middleware.ping = function(req, res, next) {
 };
 
 Middleware.getStats = function(req, res, next) {
-	Solr.getRecordCount(function(err, count) {
+	async.parallel({
+		count: async.apply(Solr.getRecordCount),
+		topics: async.apply(Solr.getTopicCount)
+	}, function(err, data) {
 		if (!err) {
 			res.locals.stats = {
-				total: count
+				total: data.count,
+				topics: data.topics
 			};
 		}
 

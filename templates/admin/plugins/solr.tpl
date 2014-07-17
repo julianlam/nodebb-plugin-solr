@@ -2,15 +2,29 @@
 
 <div class="row">
 	<div class="col-sm-8">
+		<div class="alert alert-info">
+			<p>
+				<strong><i class="fa fa-warning"></i> Please Note</strong>
+			</p>
+			<p>
+				By default, Solr is not secured against outside access. For the safety and integrity of
+				your data, it is recommended that you maintain a firewall to close off public access
+				to the Tomcat/Jetty server that is serving Solr. (On Ubuntu, the <code>ufw</code> utility
+				works well).
+			</p>
+			<p>
+				For more information: <a href="https://wiki.apache.org/solr/SolrSecurity">https://wiki.apache.org/solr/SolrSecurity</a>
+			</p>
+		</div>
 		<h2>Client Configuration</h2>
 		<form role="form" class="solr-settings">
 			<div class="form-group">
 				<label for="host">Host</label>
-				<input class="form-control" type="text" name="host" id="host" placeholder="127.0.0.1" />
+				<input class="form-control" type="text" name="host" id="host" placeholder="Default: 127.0.0.1" />
 			</div>
 			<div class="form-group">
 				<label for="port">Port</label>
-				<input class="form-control" type="text" name="port" id="port" placeholder="8983" />
+				<input class="form-control" type="text" name="port" id="port" placeholder="Default: 8983" />
 			</div>
 			<button id="save" type="button" class="btn btn-primary btn-block">Save</button>
 		</form>
@@ -63,9 +77,10 @@
 			</div>
 			<div class="panel-body">
 				<!-- IF stats -->
-				<p>
-					Total items indexed: {stats.total}
-				</p>
+				<ul>
+					<li>Total items indexed: {stats.total}</li>
+					<li>Topics indexed: {stats.topics}</li>
+				</ul>
 				<!-- ELSE -->
 				<p>
 					There are no statistics to report.
@@ -77,8 +92,8 @@
 </div>
 <script>
 	$(document).ready(function() {
-		var	csrf = '{csrf_token}' || $('#csrf_token').val();
-		
+		var	csrf = '{csrf}' || $('#csrf_token').val();
+
 		// Flush event
 		$('button[data-action="flush"]').on('click', function() {
 			bootbox.confirm('Are you sure you wish to empty the Solr search index?', function(confirm) {
