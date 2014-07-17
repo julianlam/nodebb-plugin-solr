@@ -10,14 +10,14 @@
 				By default, Solr is not secured against outside access. For the safety and integrity of
 				your data, it is recommended that you maintain a firewall to close off public access
 				to the Tomcat/Jetty server that is serving Solr. (On Ubuntu, the <code>ufw</code> utility
-				works well).
+				works well). You can also elect to limit access to requests from the NodeBB server only.
 			</p>
 			<p>
 				For more information: <a href="https://wiki.apache.org/solr/SolrSecurity">https://wiki.apache.org/solr/SolrSecurity</a>
 			</p>
 		</div>
 
-		<h2>Client Configuration</h2>
+		<h3>Client Configuration</h2>
 		<form role="form" class="solr-settings">
 			<div class="form-group">
 				<label for="host">Host</label>
@@ -26,6 +26,20 @@
 			<div class="form-group">
 				<label for="port">Port</label>
 				<input class="form-control" type="text" name="port" id="port" placeholder="Default: 8983" />
+			</div>
+
+			<h4>Authentication</h3>
+			<p class="help-block">
+				If your Tomcat/Jetty server is configured with HTTP Basic Authentication, enter its credentials here.
+				Leave it blank otherwise.
+			</p>
+			<div class="form-group col-sm-6">
+				<label for="username">Username</label>
+				<input class="form-control" type="text" name="username" id="username" />
+			</div>
+			<div class="form-group col-sm-6">
+				<label for="password">Password</label>
+				<input class="form-control" type="password" name="password" id="password" />
 			</div>
 			<button id="save" type="button" class="btn btn-primary btn-block">Save</button>
 		</form>

@@ -133,6 +133,10 @@ Solr.connect = function() {
 
 	Solr.client = engine.createClient(Solr.config);
 	Solr.client.autoCommit = true;
+
+	if (Solr.config.username && Solr.config.password) {
+		Solr.client.basicAuth(Solr.config.username, Solr.config.password);
+	}
 };
 
 Solr.adminMenu = function(custom_header, callback) {
