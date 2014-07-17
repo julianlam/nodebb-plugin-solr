@@ -4,10 +4,15 @@ var	Solr = module.parent.exports,
 	Middleware = {};
 
 Middleware.ping = function(req, res, next) {
-	Solr.client.ping(function(err, response) {
+	Solr.ping(function(err, response) {
 		res.locals.ping = !err ? response : undefined;
 		next();
 	});
+};
+
+Middleware.getEnabled = function(req, res, next) {
+	res.locals.enabled = parseInt(Solr.config.enabled, 10) ? true : false;
+	next();
 };
 
 Middleware.getStats = function(req, res, next) {

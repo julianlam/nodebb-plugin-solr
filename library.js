@@ -23,21 +23,31 @@ Solr.init = function(app, middleware, controllers, callback) {
 
 			res.render('admin/plugins/solr', {
 				ping: res.locals.ping,
+				enabled: res.locals.enabled,
 				stats: res.locals.stats,
 				csrf: token
 			});
 		};
 
-	app.get('/admin/plugins/solr', middleware.admin.buildHeader, pluginMiddleware.ping, pluginMiddleware.getStats, render);
-	app.get('/api/admin/plugins/solr', pluginMiddleware.ping, pluginMiddleware.getStats, render);
+	app.get('/admin/plugins/solr', middleware.admin.buildHeader, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
+	app.get('/api/admin/plugins/solr', pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
 
 	// Utility
 	app.post('/admin/plugins/solr/rebuild', middleware.admin.isAdmin, Solr.rebuildIndex);
+	app.post('/admin/plugins/solr/toggle', Solr.toggle);
 	app.delete('/admin/plugins/solr/flush', middleware.admin.isAdmin, Solr.flush);
 
 	Solr.getSettings(Solr.connect);
 
 	callback();
+};
+
+Solr.ping = function(callback) {
+	if (Solr.client) {
+		Solr.client.ping(callback);
+	} else {
+		callback(new Error('not-connected'));
+	}
 };
 
 Solr.checkConflict = function() {
@@ -142,6 +152,17 @@ Solr.search = function(data, callback) {
 	});
 };
 
+Solr.toggle = function(req, res) {
+	if (req.body.state) {
+		db.setObjectField('settings:solr', 'enabled', parseInt(req.body.state, 10) ? '1' : '0', function(err) {
+			Solr.config.enabled = req.body.state;
+			res.send(!err ? 200 : 500);
+		});
+	} else {
+		res.send(400, "'state' required");
+	}
+};
+
 Solr.add = function(payload, callback) {
 	Solr.client.add(payload, function(err, obj) {
 		if (err) {
@@ -173,6 +194,10 @@ Solr.flush = function(req, res) {
 
 Solr.post = {};
 Solr.post.save = function(postData) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
 	Solr.add({
 		id: postData.pid,
 		description_t: postData.content
@@ -180,14 +205,26 @@ Solr.post.save = function(postData) {
 };
 
 Solr.post.delete = function(pid, callback) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
 	Solr.remove(pid);
 
 	if (typeof callback === 'function') {
+		if (!parseInt(Solr.config.enabled, 10)) {
+			return;
+		}
+
 		callback();
 	}
 };
 
 Solr.post.restore = function(postData) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
 	Solr.add({
 		id: postData.pid,
 		description_t: postData.content
@@ -198,18 +235,34 @@ Solr.post.edit = Solr.post.restore;
 
 Solr.topic = {};
 Solr.topic.post = function(topicObj) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
 	Solr.indexTopic(topicObj.tid);
 };
 
 Solr.topic.delete = function(tid) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
 	Solr.deindexTopic(tid);
 };
 
 Solr.topic.restore = function(tid) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
 	Solr.indexTopic(tid);
 };
 
 Solr.topic.edit = function(tid) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
 	topics.getTopicFields(tid, ['mainPid', 'title'], function(err, topicData) {
 		Solr.indexPost(topicData.mainPid, function(err, payload) {
 			payload.title_t = topicData.title;

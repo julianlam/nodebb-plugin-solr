@@ -16,6 +16,7 @@
 				For more information: <a href="https://wiki.apache.org/solr/SolrSecurity">https://wiki.apache.org/solr/SolrSecurity</a>
 			</p>
 		</div>
+
 		<h2>Client Configuration</h2>
 		<form role="form" class="solr-settings">
 			<div class="form-group">
@@ -67,6 +68,18 @@
 					Please ensure your configuration settings are correct.
 				</p>
 				<!-- ENDIF ping -->
+
+				<!-- IF enabled -->
+				<button class="btn btn-success btn-block" data-action="toggle" data-enabled="1"><i class="fa fa-fw fa-play"></i> &nbsp; Indexing Enabled</button>
+				<p class="help-block">
+					Topics and Posts will be automatically added to the search index.
+				</p>
+				<!-- ELSE -->
+				<button class="btn btn-warning btn-block" data-action="toggle" data-enabled="0"><i class="fa fa-fw fa-pause"></i> &nbsp; Indexing Disabled</button>
+				<p class="help-block">
+					Indexing is currently paused, Topics and Posts will not be automatically added to the search index.
+				</p>
+				<!-- ENDIF enabled -->
 			</div>
 		</div>
 		<div class="panel panel-default">
@@ -116,6 +129,18 @@
 					});
 				}
 			});
+		});
+
+		// Toggle event
+		$('button[data-action="toggle"]').on('click', function() {
+			$.ajax({
+				url: config.relative_path + '/admin/plugins/solr/toggle',
+				type: 'POST',
+				data: {
+					_csrf: csrf,
+					state: parseInt($('button[data-action="toggle"]').attr('data-enabled'), 10) ^ 1
+				}
+			}).success(ajaxify.refresh);
 		});
 
 		// Index All event
