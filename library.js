@@ -7,6 +7,9 @@ var db = module.parent.require('./database'),
 	engine = require('solr-client'),
 	async = module.parent.require('async'),
 
+	LRU = require('lru-cache'),
+	cache = LRU({ max: 20, maxAge: 1000 * 60 * 60 }),	// Remember the last 20 searches in the past hour
+
 	topics = module.parent.require('./topics'),
 	posts = module.parent.require('./posts'),
 
@@ -154,20 +157,28 @@ Solr.search = function(data, callback) {
 
 	winston.info('[plugin/solr] Conducting search for: "' + data.query + '"');
 
-	var query = Solr.client.createQuery().q(data.query).dismax().qf({
-			title_t: 1.5,
-			description_t: 1
-		}).start(0).rows(20);
+	if (cache.has(data.query)) {
+		callback(null, cache.get(data.query));
+	} else {
+		var query = Solr.client.createQuery().q(data.query).dismax().qf({
+				title_t: 1.5,
+				description_t: 1
+			}).start(0).rows(20);
 
-	Solr.client.search(query, function(err, obj) {
-		if (obj.response.docs.length > 0) {
-			callback(null, obj.response.docs.map(function(result) {
-				return result.id;
-			}));
-		} else {
-			callback(null, []);
-		}
-	});
+		Solr.client.search(query, function(err, obj) {
+			if (obj.response.docs.length > 0) {
+				var payload = obj.response.docs.map(function(result) {
+						return result.id;
+					});
+
+				callback(null, payload);
+				cache.set(data.query, payload);
+			} else {
+				callback(null, []);
+				cache.set(data.query, []);
+			}
+		});
+	}
 };
 
 Solr.searchTopic = function(tid, term, callback) {
