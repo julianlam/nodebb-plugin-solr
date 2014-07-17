@@ -65,6 +65,17 @@ Solr.checkConflict = function() {
 	}
 };
 
+Solr.getNotices = function(notices, callback) {
+	Solr.ping(function(err, obj) {
+		var solrNotices = [
+				{ done: !err ? true : false, doneText: 'Solr connection OK', notDoneText: 'Could not connect to Solr server' },
+				{ done: parseInt(Solr.config.enabled, 10) ? true : false, doneText: 'Solr Indexing Enabled', notDoneText: 'Solr Indexing Disabled' }
+			];
+
+		callback(null, notices.concat(solrNotices));
+	})
+};
+
 Solr.getSettings = function(callback) {
 	db.getObject('settings:solr', function(err, config) {
 		Solr.config = {};
