@@ -21,6 +21,16 @@ var db = module.parent.require('./database'),
 	},
 
 	Solr = {
+		/*
+			Defaults configs:
+			host: localhost
+			port: 8983
+			core: ''
+			path: '/solr'
+			enabled: undefined (false)
+			titleField: 'title_t'
+			contentField: 'description_t'
+		*/
 		config: {},	// default is localhost:8983, '' core, '/solr' path
 		client: undefined
 	};
@@ -72,7 +82,7 @@ Solr.getNotices = function(notices, callback) {
 	Solr.ping(function(err, obj) {
 		var solrNotices = [
 				{ done: !err ? true : false, doneText: 'Solr connection OK', notDoneText: 'Could not connect to Solr server' },
-				{ done: parseInt(Solr.config.enabled, 10) ? true : false, doneText: 'Solr Indexing Enabled', notDoneText: 'Solr Indexing Disabled' }
+				{ done: parseInt(Solr.config.enabled, 10) || false, doneText: 'Solr Indexing Enabled', notDoneText: 'Solr Indexing Disabled' }
 			];
 
 		callback(null, notices.concat(solrNotices));
@@ -109,7 +119,7 @@ Solr.getRecordCount = function(callback) {
 };
 
 Solr.getTopicCount = function(callback) {
-	var query = Solr.client.createQuery().q('title_t:*').start(0).rows(0);
+	var query = Solr.client.createQuery().q((Solr.config['titleField'] || 'title_t') + ':*').start(0).rows(0);
 
 	Solr.client.search(query, function(err, obj) {
 		if (!err) {
@@ -164,10 +174,14 @@ Solr.search = function(data, callback) {
 	if (cache.has(data.query)) {
 		callback(null, cache.get(data.query));
 	} else {
-		var query = Solr.client.createQuery().q(data.query).dismax().qf({
-				title_t: 1.5,
-				description_t: 1
-			}).start(0).rows(20);
+		var fields = {},
+			query;
+
+		// Populate Fields
+		fields[Solr.config['titleField'] || 'title_t'] = 1.5;
+		fields[Solr.config['contentField'] || 'description_t'] = 1;
+
+		query = Solr.client.createQuery().q(data.query).dismax().qf(fields).start(0).rows(20);
 
 		Solr.client.search(query, function(err, obj) {
 			if (obj.response.docs.length > 0) {
@@ -191,10 +205,15 @@ Solr.searchTopic = function(tid, term, callback) {
 		pids: async.apply(topics.getPids, tid)
 	}, function(err, data) {
 		data.pids.unshift(data.mainPid);
-		var query = Solr.client.createQuery().q({
-				description_t: escapeSpecialChars(term),
-				id: '(' + data.pids.join(' OR ') + ')'
-			});
+
+		var fields = {},
+			query;
+
+		// Populate Query
+		fields[Solr.config['contentField'] || 'description_t'] = escapeSpecialChars(term);
+		fields[id] = '(' + data.pids.join(' OR ') + ')';
+
+		query = Solr.client.createQuery().q(fields);
 
 		Solr.client.search(query, function(err, obj) {
 			if (obj.response.docs.length > 0) {
@@ -254,10 +273,7 @@ Solr.post.save = function(postData) {
 		return;
 	}
 
-	Solr.add({
-		id: postData.pid,
-		description_t: postData.content
-	});
+	Solr.indexPost(postData.pid);
 };
 
 Solr.post.delete = function(pid, callback) {
@@ -281,10 +297,7 @@ Solr.post.restore = function(postData) {
 		return;
 	}
 
-	Solr.add({
-		id: postData.pid,
-		description_t: postData.content
-	});
+	Solr.indexPost(postData.pid);
 };
 
 Solr.post.edit = Solr.post.restore;
@@ -321,7 +334,7 @@ Solr.topic.edit = function(tid) {
 
 	topics.getTopicFields(tid, ['mainPid', 'title'], function(err, topicData) {
 		Solr.indexPost(topicData.mainPid, function(err, payload) {
-			payload.title_t = topicData.title;
+			payload[Solr.config['titleField'] || 'title_t'] = topicData.title;
 			Solr.add(payload);
 		});
 	});
@@ -347,7 +360,7 @@ Solr.indexTopic = function(tid, callback) {
 				// Also index the title into the main post of this topic
 				for(var x=0,numPids=payload.length;x<numPids;x++) {
 					if (payload[x].id === data.topic.mainPid) {
-						payload[x].title_t = data.topic.title;
+						payload[x][Solr.config['titleField'] || 'title_t'] = data.topic.title;
 					}
 				}
 
@@ -377,17 +390,17 @@ Solr.deindexTopic = function(tid) {
 };
 
 Solr.indexPost = function(pid, callback) {
+	var payload = {
+			id: pid
+		};
+
 	posts.getPostField(pid, 'content', function(err, content) {
+		payload[Solr.config['contentField'] || 'description_t'] = content;
+
 		if (typeof callback === 'function') {
-			callback(undefined, {
-				id: pid,
-				description_t: content
-			});
+			callback(undefined, payload);
 		} else {
-			Solr.add({
-				id: pid,
-				description_t: content
-			});
+			Solr.add(payload);
 		}
 	});
 };

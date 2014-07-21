@@ -41,6 +41,23 @@
 				<label for="password">Password</label>
 				<input class="form-control" type="password" name="password" id="password" />
 			</div>
+
+			<h4>Custom Fields</h4>
+			<div class="row">
+				<div class="form-group col-xs-6">
+					<label for="titleField">Title Field</label>
+					<input class="form-control" type="text" placeholder="Default: title_t" id="titleField" name="titleField" />
+				</div>
+				<div class="form-group col-xs-6">
+					<label for="contentField">Content Field</label>
+					<input class="form-control" type="text" placeholder="Default: description_t" id="contentField" name="contentField" />
+				</div>
+				<p class="help-block col-xs-12">
+					If you have specified your own field schema in your Solr <code>schema.xml</code>
+					file, you an specify the custom fields here.
+				</p>
+			</div>
+
 			<button id="save" type="button" class="btn btn-primary btn-block">Save</button>
 		</form>
 
@@ -164,8 +181,7 @@
 					app.alert({
 						type: 'info',
 						alert_id: 'solr-rebuilt',
-						title: '<i class="fa fa-refresh fa-spin"></i> Rebuilding search index...',
-						timeout: 2500
+						title: '<i class="fa fa-refresh fa-spin"></i> Rebuilding search index...'
 					});
 
 					$.ajax({

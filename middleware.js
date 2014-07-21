@@ -11,7 +11,7 @@ Middleware.ping = function(req, res, next) {
 };
 
 Middleware.getEnabled = function(req, res, next) {
-	res.locals.enabled = parseInt(Solr.config.enabled, 10) ? true : false;
+	res.locals.enabled = parseInt(Solr.config.enabled, 10) || false;
 	next();
 };
 
