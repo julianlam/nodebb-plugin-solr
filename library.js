@@ -49,7 +49,7 @@ Solr.init = function(app, middleware, controllers, callback) {
 
 	Solr.getSettings(Solr.connect);
 
-	callback.apply(module.parent.exports, arguments);
+	callback();
 };
 
 Solr.ping = function(callback) {
