@@ -184,7 +184,9 @@ Solr.search = function(data, callback) {
 		query = Solr.client.createQuery().q(data.query).dismax().qf(fields).start(0).rows(20);
 
 		Solr.client.search(query, function(err, obj) {
-			if (obj.response.docs.length > 0) {
+			if (err) {
+				callback(err);
+			} else if (obj.response.docs.length > 0) {
 				var payload = obj.response.docs.map(function(result) {
 						return result.id;
 					});
@@ -199,7 +201,10 @@ Solr.search = function(data, callback) {
 	}
 };
 
-Solr.searchTopic = function(tid, term, callback) {
+Solr.searchTopic = function(data, callback) {
+	var tid = data.tid,
+		term = data.term;
+
 	async.parallel({
 		mainPid: async.apply(topics.getTopicField, tid, 'mainPid'),
 		pids: async.apply(topics.getPids, tid)
@@ -210,13 +215,15 @@ Solr.searchTopic = function(tid, term, callback) {
 			query;
 
 		// Populate Query
-		fields[Solr.config['contentField'] || 'description_t'] = escapeSpecialChars(term);
-		fields[id] = '(' + data.pids.join(' OR ') + ')';
+		fields[Solr.config.contentField || 'description_t'] = escapeSpecialChars(term);
+		fields.id = '(' + data.pids.join(' OR ') + ')';
 
 		query = Solr.client.createQuery().q(fields);
 
 		Solr.client.search(query, function(err, obj) {
-			if (obj.response.docs.length > 0) {
+			if (err) {
+				callback(err);
+			} else if (obj.response.docs.length > 0) {
 				callback(null, obj.response.docs.map(function(result) {
 					return result.id;
 				}));

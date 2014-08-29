@@ -20,7 +20,8 @@
         { "hook": "action:topic.restore", "method": "topic.restore"},
         { "hook": "action:topic.edit", "method": "topic.edit"},
 
-        { "hook": "filter:search.query", "method": "search"}
+        { "hook": "filter:search.query", "method": "search"},
+        { "hook": "filter:topic.search", "method": "searchTopic"}
 	],
 	"less": [
 		"static/style.less"
