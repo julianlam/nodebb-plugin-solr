@@ -110,10 +110,10 @@ Solr.getRecordCount = function(callback) {
 	var query = Solr.client.createQuery().q('*:*').start(0).rows(0);
 
 	Solr.client.search(query, function(err, obj) {
-		if (!err) {
+		if (!err && obj && obj.response) {
 			callback(undefined, obj.response.numFound);
 		} else {
-			callback(err);
+			callback(err, 0);
 		}
 	});
 };
@@ -122,10 +122,10 @@ Solr.getTopicCount = function(callback) {
 	var query = Solr.client.createQuery().q((Solr.config['titleField'] || 'title_t') + ':*').start(0).rows(0);
 
 	Solr.client.search(query, function(err, obj) {
-		if (!err) {
+		if (!err && obj && obj.response) {
 			callback(undefined, obj.response.numFound);
 		} else {
-			callback(err);
+			callback(err, 0);
 		}
 	});
 }
