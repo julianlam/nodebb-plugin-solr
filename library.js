@@ -186,7 +186,7 @@ Solr.search = function(data, callback) {
 		Solr.client.search(query, function(err, obj) {
 			if (err) {
 				callback(err);
-			} else if (obj.response.docs.length > 0) {
+			} else if (obj && obj.response && obj.response.docs.length > 0) {
 				var payload = obj.response.docs.map(function(result) {
 						return result.id;
 					});
