@@ -130,12 +130,6 @@ Solr.getTopicCount = function(callback) {
 	});
 }
 
-Solr.onConfigChange = function(hash) {
-	if (hash === 'settings:solr') {
-		Solr.getSettings(Solr.connect);
-	}
-};
-
 Solr.connect = function() {
 	if (Solr.client) {
 		delete Solr.client;

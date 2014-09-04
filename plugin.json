@@ -7,7 +7,6 @@
 	"hooks": [
 		{ "hook": "static:app.load", "method": "init", "priority": 5 },
 		{ "hook": "filter:admin.header.build", "method": "adminMenu" },
-		{ "hook": "action:settings.set", "method": "onConfigChange" },
 		{ "hook": "filter:admin.notices", "method": "getNotices"},
 
 		{ "hook": "action:post.save", "method": "post.save"},

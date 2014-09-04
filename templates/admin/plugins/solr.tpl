@@ -214,13 +214,12 @@
 						type: 'success',
 						alert_id: 'solr-saved',
 						title: 'Settings Saved',
-						timeout: 2500
+						message: 'Click here to reload NodeBB',
+						timeout: 2500,
+						clickfn: function() {
+							socket.emit('admin.reload');
+						}
 					});
-
-					// Short delay to allow new Solr object to be created, server-side.
-					setTimeout(function() {
-						ajaxify.refresh();
-					}, 250);
 				});
 			});
 		});
