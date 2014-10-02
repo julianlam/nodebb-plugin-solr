@@ -49,8 +49,8 @@ Solr.init = function(app, middleware, controllers, callback) {
 			});
 		};
 
-	app.get('/admin/plugins/solr', middleware.admin.buildHeader, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
-	app.get('/api/admin/plugins/solr', pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
+	app.get('/admin/plugins/solr', middleware.applyCSRF, middleware.admin.buildHeader, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
+	app.get('/api/admin/plugins/solr', middleware.applyCSRF, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
 
 	// Utility
 	app.post('/admin/plugins/solr/rebuild', middleware.admin.isAdmin, Solr.rebuildIndex);
