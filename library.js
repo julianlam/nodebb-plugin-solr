@@ -163,8 +163,6 @@ Solr.search = function(data, callback) {
 		return callback(null, []);
 	}
 
-	winston.info('[plugin/solr] Conducting search for: "' + data.query + '"');
-
 	if (cache.has(data.query)) {
 		callback(null, cache.get(data.query));
 	} else {
