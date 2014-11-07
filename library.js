@@ -272,7 +272,7 @@ Solr.post.save = function(postData) {
 		return;
 	}
 
-	Solr.indexPost(postData.pid);
+	Solr.indexPost(postData);
 };
 
 Solr.post.delete = function(pid, callback) {
@@ -296,7 +296,7 @@ Solr.post.restore = function(postData) {
 		return;
 	}
 
-	Solr.indexPost(postData.pid);
+	Solr.indexPost(postData);
 };
 
 Solr.post.edit = Solr.post.restore;
@@ -307,7 +307,7 @@ Solr.topic.post = function(topicObj) {
 		return;
 	}
 
-	Solr.indexTopic(topicObj.tid);
+	Solr.indexTopic(topicObj);
 };
 
 Solr.topic.delete = function(tid) {
@@ -318,48 +318,46 @@ Solr.topic.delete = function(tid) {
 	Solr.deindexTopic(tid);
 };
 
-Solr.topic.restore = function(tid) {
+Solr.topic.restore = function(topicObj) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
 
-	Solr.indexTopic(tid);
+	Solr.indexTopic(topicObj);
 };
 
-Solr.topic.edit = function(tid) {
+Solr.topic.edit = function(topicObj) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
 
-	topics.getTopicFields(tid, ['mainPid', 'title'], function(err, topicData) {
-		Solr.indexPost(topicData.mainPid, function(err, payload) {
-			payload[Solr.config['titleField'] || 'title_t'] = topicData.title;
-			Solr.add(payload);
-		});
+	Solr.indexPost(topicObj.mainPid, function(err, payload) {
+		payload[Solr.config['titleField'] || 'title_t'] = topicObj.title;
+		Solr.add(payload);
 	});
 };
 
 /* Topic and Post indexing methods */
 
-Solr.indexTopic = function(tid, callback) {
-	async.parallel({
-		topic: async.apply(topics.getTopicFields, tid, ['title', 'mainPid']),
-		pids: async.apply(topics.getPids, tid)
-	}, function(err, data) {
+Solr.indexTopic = function(topicObj, callback) {
+	topics.getPids(topicObj.tid, function(err, pids) {
+		if (err) {
+			return callback(err);
+		}
 		// Add OP to the list of pids to index
-		if (data.topic.mainPid) {
-			data.pids.unshift(data.topic.mainPid);
+		if (topicObj.mainPid) {
+			pids.unshift(topicObj.mainPid);
 		}
 
-		async.map(data.pids, Solr.indexPost, function(err, payload) {
+		async.map(pids, Solr.indexPost, function(err, payload) {
 			if (err) {
 				winston.error('[plugins/solr] Encountered an error while compiling post data for tid ' + tid);
 				if (callback) callback(err);
 			} else {
 				// Also index the title into the main post of this topic
 				for(var x=0,numPids=payload.length;x<numPids;x++) {
-					if (payload[x].id === data.topic.mainPid) {
-						payload[x][Solr.config['titleField'] || 'title_t'] = data.topic.title;
+					if (payload[x].id === topicObj.mainPid) {
+						payload[x][Solr.config['titleField'] || 'title_t'] = topicObj.title;
 					}
 				}
 
@@ -388,20 +386,20 @@ Solr.deindexTopic = function(tid) {
 	});
 };
 
-Solr.indexPost = function(pid, callback) {
+Solr.indexPost = function(postData, callback) {
 	var payload = {
-			id: pid
+			id: postData.pid
 		};
 
-	posts.getPostField(pid, 'content', function(err, content) {
-		payload[Solr.config['contentField'] || 'description_t'] = content;
+	
+	payload[Solr.config['contentField'] || 'description_t'] = postData.content;
 
-		if (typeof callback === 'function') {
-			callback(undefined, payload);
-		} else {
-			Solr.add(payload);
-		}
-	});
+	if (typeof callback === 'function') {
+		callback(undefined, payload);
+	} else {
+		Solr.add(payload);
+	}
+	
 };
 
 Solr.deindexPost = Solr.post.delete;
