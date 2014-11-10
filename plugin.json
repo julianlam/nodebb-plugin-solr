@@ -25,6 +25,5 @@
 	"less": [
 		"static/style.less"
 	],
-	"templates": "templates",
-	"compatibility": "~0.5.1"
+	"templates": "templates"
 }

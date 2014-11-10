@@ -35,7 +35,7 @@ var db = module.parent.require('./database'),
 		client: undefined
 	};
 
-Solr.init = function(app, middleware, controllers, callback) {
+Solr.init = function(data, callback) {
 	var pluginMiddleware = require('./middleware'),
 		render = function(req, res, next) {
 			// Regenerate csrf token
@@ -49,13 +49,13 @@ Solr.init = function(app, middleware, controllers, callback) {
 			});
 		};
 
-	app.get('/admin/plugins/solr', middleware.applyCSRF, middleware.admin.buildHeader, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
-	app.get('/api/admin/plugins/solr', middleware.applyCSRF, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
+	data.router.get('/admin/plugins/solr', data.middleware.applyCSRF, data.middleware.admin.buildHeader, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
+	data.router.get('/api/admin/plugins/solr', data.middleware.applyCSRF, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
 
 	// Utility
-	app.post('/admin/plugins/solr/rebuild', middleware.admin.isAdmin, Solr.rebuildIndex);
-	app.post('/admin/plugins/solr/toggle', Solr.toggle);
-	app.delete('/admin/plugins/solr/flush', middleware.admin.isAdmin, Solr.flush);
+	data.router.post('/admin/plugins/solr/rebuild', data.middleware.admin.isAdmin, Solr.rebuildIndex);
+	data.router.post('/admin/plugins/solr/toggle', Solr.toggle);
+	data.router.delete('/admin/plugins/solr/flush', data.middleware.admin.isAdmin, Solr.flush);
 
 	Solr.getSettings(Solr.connect);
 
@@ -331,7 +331,10 @@ Solr.topic.edit = function(topicObj) {
 		return;
 	}
 
-	Solr.indexPost(topicObj.mainPid, function(err, payload) {
+	async.waterfall([
+		async.apply(posts.getPostFields,topicObj.mainPid, ['pid', 'content']),
+		Solr.indexPost,
+	], function(err, payload) {
 		payload[Solr.config['titleField'] || 'title_t'] = topicObj.title;
 		Solr.add(payload);
 	});
@@ -340,34 +343,40 @@ Solr.topic.edit = function(topicObj) {
 /* Topic and Post indexing methods */
 
 Solr.indexTopic = function(topicObj, callback) {
-	topics.getPids(topicObj.tid, function(err, pids) {
-		if (err) {
-			return callback(err);
-		}
-		// Add OP to the list of pids to index
-		if (topicObj.mainPid) {
-			pids.unshift(topicObj.mainPid);
-		}
-
-		async.map(pids, Solr.indexPost, function(err, payload) {
-			if (err) {
-				winston.error('[plugins/solr] Encountered an error while compiling post data for tid ' + tid);
-				if (callback) callback(err);
-			} else {
-				// Also index the title into the main post of this topic
-				for(var x=0,numPids=payload.length;x<numPids;x++) {
-					if (payload[x].id === topicObj.mainPid) {
-						payload[x][Solr.config['titleField'] || 'title_t'] = topicObj.title;
-					}
-				}
-
-				if (typeof callback === 'function') {
-					callback(undefined, payload);
-				} else {
-					Solr.add(payload, callback);
-				}
+	async.waterfall([
+		async.apply(topics.getPids, topicObj.tid),
+		function(pids, next) {
+			// Add OP to the list of pids to index
+			if (topicObj.mainPid && pids.indexOf(topicObj.mainPid) === -1) {
+				pids.unshift(topicObj.mainPid);
 			}
-		});
+
+			posts.getPostsFields(pids, ['pid', 'content'], next);
+		},
+		function(posts, next) {
+			async.map(posts, Solr.indexPost, next);
+		}
+	], function(err, payload) {
+		if (err) {
+			winston.error('[plugins/solr] Encountered an error while compiling post data for tid ' + tid);
+
+			if (typeof callback === 'function') {
+				return callback(err);
+			}
+		}
+
+		// Also index the title into the main post of this topic
+		for(var x=0,numPids=payload.length;x<numPids;x++) {
+			if (payload[x].id === topicObj.mainPid) {
+				payload[x][Solr.config['titleField'] || 'title_t'] = topicObj.title;
+			}
+		}
+
+		if (typeof callback === 'function') {
+			callback(undefined, payload);
+		} else {
+			Solr.add(payload, callback);
+		}
 	});
 };
 
@@ -390,7 +399,6 @@ Solr.indexPost = function(postData, callback) {
 	var payload = {
 			id: postData.pid
 		};
-
 	
 	payload[Solr.config['contentField'] || 'description_t'] = postData.content;
 
