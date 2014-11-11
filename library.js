@@ -335,6 +335,7 @@ Solr.topic.edit = function(topicObj) {
 		async.apply(posts.getPostFields,topicObj.mainPid, ['pid', 'content']),
 		Solr.indexPost,
 	], function(err, payload) {
+		payload = payload.filter(Boolean);
 		payload[Solr.config['titleField'] || 'title_t'] = topicObj.title;
 		Solr.add(payload);
 	});
@@ -354,6 +355,7 @@ Solr.indexTopic = function(topicObj, callback) {
 			posts.getPostsFields(pids, ['pid', 'content'], next);
 		},
 		function(posts, next) {
+			winston.verbose('[plugins/solr] Indexing tid ' + topicObj.tid + ' (' + posts.length + ' posts)');
 			async.map(posts, Solr.indexPost, next);
 		}
 	], function(err, payload) {
@@ -364,6 +366,8 @@ Solr.indexTopic = function(topicObj, callback) {
 				return callback(err);
 			}
 		}
+
+		payload = payload.filter(Boolean);
 
 		// Also index the title into the main post of this topic
 		for(var x=0,numPids=payload.length;x<numPids;x++) {
@@ -396,6 +400,10 @@ Solr.deindexTopic = function(tid) {
 };
 
 Solr.indexPost = function(postData, callback) {
+	if (!postData || !postData.pid || !postData.content) {
+		return callback(null);
+	}
+
 	var payload = {
 			id: postData.pid
 		};
@@ -413,23 +421,33 @@ Solr.indexPost = function(postData, callback) {
 Solr.deindexPost = Solr.post.delete;
 
 Solr.rebuildIndex = function(req, res) {
-	db.getSortedSetRange('topics:tid', 0, -1, function(err, tids) {
-		if (err) {
-			winston.error('[plugins/solr] Could not retrieve topic listing for indexing');
-		} else {
-			async.map(tids, Solr.indexTopic, function(err, topicPayloads) {
-				var payload = [];
-				for(var x=0,numTopics=topicPayloads.length;x<numTopics;x++) {
-					payload = payload.concat(topicPayloads[x]);
-				}
-
-				Solr.add(payload, function(err, obj) {
-					if (!err) {
-						res.send(200);
-					}
-				});
-			});
+	async.waterfall([
+		async.apply(db.getSortedSetRange, 'topics:tid', 0, -1),
+		function(tids, next) {
+			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title'], next);
 		}
+	], function(err, topics) {
+		if (err) {
+			return winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
+		}
+
+		async.map(topics, Solr.indexTopic, function(err, topicPayloads) {
+			var payload = topicPayloads.reduce(function(currentPayload, topics) {
+					if (Array.isArray(topics)) {
+						return currentPayload.concat(topics);
+					} else {
+						currentPayload.push(topics);
+					}
+				}, []).filter(function(entry) {
+					return entry.hasOwnProperty('id');
+				});
+
+			Solr.add(payload, function(err, obj) {
+				if (!err) {
+					res.sendStatus(200);
+				}
+			});
+		});
 	});
 };
 
