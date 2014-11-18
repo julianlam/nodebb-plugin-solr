@@ -335,7 +335,13 @@ Solr.topic.edit = function(topicObj) {
 		async.apply(posts.getPostFields,topicObj.mainPid, ['pid', 'content']),
 		Solr.indexPost,
 	], function(err, payload) {
-		payload = payload.filter(Boolean);
+		if (err) {
+			return winston.error(err.message);
+		}
+		if (!payload) {
+			return winston.warn('[solr] no payload for pid ' + topicObj.mainPid);
+		}
+	
 		payload[Solr.config['titleField'] || 'title_t'] = topicObj.title;
 		Solr.add(payload);
 	});
