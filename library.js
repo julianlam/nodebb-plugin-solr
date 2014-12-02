@@ -53,9 +53,9 @@ Solr.init = function(data, callback) {
 	data.router.get('/api/admin/plugins/solr', data.middleware.applyCSRF, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
 
 	// Utility
-	data.router.post('/admin/plugins/solr/rebuild', data.middleware.admin.isAdmin, Solr.rebuildIndex);
+	data.router.post('/admin/plugins/solr/rebuild', Solr.rebuildIndex);
 	data.router.post('/admin/plugins/solr/toggle', Solr.toggle);
-	data.router.delete('/admin/plugins/solr/flush', data.middleware.admin.isAdmin, Solr.flush);
+	data.router.delete('/admin/plugins/solr/flush', Solr.flush);
 
 	Solr.getSettings(Solr.connect);
 
