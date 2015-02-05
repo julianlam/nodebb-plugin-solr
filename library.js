@@ -8,7 +8,8 @@ var db = module.parent.require('./database'),
 	async = module.parent.require('async'),
 
 	LRU = require('lru-cache'),
-	cache = LRU({ max: 20, maxAge: 1000 * 60 * 60 }),	// Remember the last 20 searches in the past hour
+	titleCache = LRU({ max: 20, maxAge: 1000 * 60 * 60 }),	// Remember the last 20 searches in the past hour
+	postCache = LRU({ max: 20, maxAge: 1000 * 60 * 60 }),	// Remember the last 20 searches in the past hour
 
 	topics = module.parent.require('./topics'),
 	posts = module.parent.require('./posts'),
@@ -158,10 +159,13 @@ Solr.search = function(data, callback) {
 		// The dbsearch plugin was detected, abort search!
 		winston.warn('[plugin/solr] Another search plugin (dbsearch) is enabled, so search via Solr was aborted.');
 		return callback(null, data);
-	} else if (data.index === 'topic') {
+	}/* else if (data.index === 'topic') {
 		// We are only using the "post" index, because Solr does its own relevency sorting
 		return callback(null, []);
-	}
+	}*/
+
+	// Determine which cache to use
+	var cache = data.index === 'topic' ? titleCache : postCache;
 
 	if (cache.has(data.query)) {
 		callback(null, cache.get(data.query));
@@ -170,14 +174,14 @@ Solr.search = function(data, callback) {
 			query;
 
 		// Populate Fields
-		fields[Solr.config.titleField || 'title_t'] = 1.5;
-		fields[Solr.config.contentField || 'description_t'] = 1;
+		if (data.index === 'topic') { fields[Solr.config.titleField || 'title_t'] = 1; }
+		else { fields[Solr.config.contentField || 'description_t'] = 1; }
 
-		query = Solr.client.createQuery().q(data.query).dismax().qf(fields).start(0).rows(20);
+		query = Solr.client.createQuery().q(data.query).dismax().qf(fields).start(0).rows(500);
 
 		Solr.client.search(query, function(err, obj) {
 			if (err) {
-				callback(err);
+				return callback(err);
 			} else if (obj && obj.response && obj.response.docs.length > 0) {
 				var payload = obj.response.docs.map(function(result) {
 						return result.id;
@@ -189,6 +193,8 @@ Solr.search = function(data, callback) {
 				callback(null, []);
 				cache.set(data.query, []);
 			}
+
+			winston.verbose('[plugin/solr] Search (' + data.index + ') for "' + data.query + '" returned ' + obj.response.docs.length + ' results');
 		});
 	}
 };
