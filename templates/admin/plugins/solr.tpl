@@ -239,7 +239,7 @@
 				$.get('/admin/plugins/solr/rebuildProgress').success(function(percentage) {
 					progress = parseFloat(percentage);
 					if (progress !== -1) {
-						updateBar(progress);
+						if (progress > 5) { updateBar(progress); }
 						setTimeout(function() {
 							checkIndexStatus(callback);
 						}, 250);
