@@ -136,6 +136,9 @@
 </div>
 <script>
 	$(document).ready(function() {
+		'use strict';
+		/* globals $, app, bootbox, config, ajaxify, require, socket */
+
 		var	csrf = '{csrf}' || $('#csrf_token').val();
 
 		// Flush event
@@ -178,10 +181,9 @@
 		$('button[data-action="rebuild"]').on('click', function() {
 			bootbox.confirm('Rebuild search index?', function(confirm) {
 				if (confirm) {
-					app.alert({
-						type: 'info',
-						alert_id: 'solr-rebuilt',
-						title: '<i class="fa fa-refresh fa-spin"></i> Rebuilding search index...'
+					bootbox.dialog({
+						title: 'Rebuilding Solr Index...',
+						message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div></div>'
 					});
 
 					$.ajax({
@@ -191,14 +193,18 @@
 							_csrf: csrf
 						}
 					}).success(function() {
-						ajaxify.refresh();
+						checkIndexStatus(function() {
+							ajaxify.refresh();
 
-						app.alert({
-							type: 'success',
-							alert_id: 'solr-rebuilt',
-							title: 'Search index rebuilt',
-							timeout: 2500
+							app.alert({
+								type: 'success',
+								alert_id: 'solr-rebuilt',
+								title: 'Search index rebuilt',
+								timeout: 2500
+							});
 						});
+					}).fail(function() {
+						app.alertError('Solr encountered an error while indexing posts and topics');
 					});
 				}
 			});
@@ -223,5 +229,33 @@
 				});
 			});
 		});
+
+		var checkIndexStatus = function(callback) {
+				var barEl = $('.progress.reindex .progress-bar'),
+					spanEl = barEl.find('span'),
+					modalEl = barEl.parents('.modal'),
+					progress;
+
+				$.get('/admin/plugins/solr/rebuildProgress').success(function(percentage) {
+					progress = parseFloat(percentage);
+					if (progress !== -1) {
+						updateBar(progress);
+						setTimeout(function() {
+							checkIndexStatus(callback);
+						}, 250);
+					} else {
+						modalEl.modal('hide');
+						callback();
+					}
+				});
+			},
+			updateBar = function(percentage) {
+				var barEl = $('.progress.reindex .progress-bar'),
+					spanEl = barEl.find('span');
+
+				barEl.css('width', percentage + '%');
+				barEl.attr('aria-valuenow', percentage);
+				spanEl.text(percentage + '% Complete');
+			};
 	});
 </script>

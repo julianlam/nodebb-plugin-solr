@@ -33,7 +33,12 @@ var db = module.parent.require('./database'),
 			contentField: 'description_t'
 		*/
 		config: {},	// default is localhost:8983, '' core, '/solr' path
-		client: undefined
+		client: undefined,
+		indexStatus: {
+			running: false,
+			current: 0,
+			total: 0
+		}
 	};
 
 Solr.init = function(data, callback) {
@@ -54,9 +59,10 @@ Solr.init = function(data, callback) {
 	data.router.get('/api/admin/plugins/solr', data.middleware.applyCSRF, pluginMiddleware.ping, pluginMiddleware.getEnabled, pluginMiddleware.getStats, render);
 
 	// Utility
-	data.router.post('/admin/plugins/solr/rebuild', data.middleware.admin.isAdmin, Solr.rebuildIndex);
+	data.router.post('/admin/plugins/solr/rebuild', Solr.rebuildIndex);
+	data.router.get('/admin/plugins/solr/rebuildProgress', Solr.getIndexProgress);
 	data.router.post('/admin/plugins/solr/toggle', Solr.toggle);
-	data.router.delete('/admin/plugins/solr/flush', data.middleware.admin.isAdmin, Solr.flush);
+	data.router.delete('/admin/plugins/solr/flush', Solr.flush);
 
 	Solr.getSettings(Solr.connect);
 
@@ -392,6 +398,9 @@ Solr.indexTopic = function(topicObj, callback) {
 			}
 		}
 
+		// Increment counter for index status
+		if (Solr.indexStatus.running) { Solr.indexStatus.current++; }
+
 		if (typeof callback === 'function') {
 			callback(undefined, payload);
 		} else {
@@ -437,17 +446,33 @@ Solr.indexPost = function(postData, callback) {
 Solr.deindexPost = Solr.post.delete;
 
 Solr.rebuildIndex = function(req, res) {
+	if (Solr.indexStatus.running) {
+		winston.warn('[plugins/solr] Solr is already indexing...');
+		return res.sendStatus(400);
+	} else {
+		res.sendStatus(200);
+	}
+
 	async.waterfall([
 		async.apply(db.getSortedSetRange, 'topics:tid', 0, -1),
 		function(tids, next) {
+			Solr.indexStatus.running = true;
+			Solr.indexStatus.current = 0;
+			Solr.indexStatus.total = tids.length;
+
 			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title'], next);
 		}
 	], function(err, topics) {
 		if (err) {
-			return winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
+			winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
 		}
 
-		async.map(topics, Solr.indexTopic, function(err, topicPayloads) {
+		async.mapLimit(topics, 100, Solr.indexTopic, function(err, topicPayloads) {
+			if (err) {
+				winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
+			}
+
+			// Normalise and validate the entries before they're added to Solr
 			var payload = topicPayloads.reduce(function(currentPayload, topics) {
 					if (Array.isArray(topics)) {
 						return currentPayload.concat(topics);
@@ -460,11 +485,23 @@ Solr.rebuildIndex = function(req, res) {
 
 			Solr.add(payload, function(err) {
 				if (!err) {
-					res.sendStatus(200);
+					winston.info('[plugins/solr] Re-indexing completed.');
+					Solr.indexStatus.running = false;
+				} else {
+					winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
 				}
 			});
 		});
 	});
+};
+
+Solr.getIndexProgress = function(req, res) {
+	if (Solr.indexStatus.running && Solr.indexStatus.total > 0) {
+		var progress = (Solr.indexStatus.current / Solr.indexStatus.total).toFixed(4) * 100;
+		res.status(200).send(progress.toString());
+	} else {
+		res.status(200).send('-1');
+	}
 };
 
 module.exports = Solr;
