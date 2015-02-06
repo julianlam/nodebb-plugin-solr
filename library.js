@@ -20,8 +20,6 @@ var db = module.parent.require('./database'),
 			return '\\' + match;
 		});
 	},
-	isTopicRecord = /^topic:([\d]+)$/,
-	isPostRecord = /^post:([\d]+)$/,
 
 	Solr = {
 		/*
@@ -167,10 +165,7 @@ Solr.search = function(data, callback) {
 		// The dbsearch plugin was detected, abort search!
 		winston.warn('[plugin/solr] Another search plugin (dbsearch) is enabled, so search via Solr was aborted.');
 		return callback(null, data);
-	}/* else if (data.index === 'topic') {
-		// We are only using the "post" index, because Solr does its own relevency sorting
-		return callback(null, []);
-	}*/
+	}
 
 	// Determine which cache to use
 	var cache = data.index === 'topic' ? titleCache : postCache;
@@ -192,9 +187,7 @@ Solr.search = function(data, callback) {
 				return callback(err);
 			} else if (obj && obj.response && obj.response.docs.length > 0) {
 				var payload = obj.response.docs.map(function(result) {
-						var match = result.id.match(data.index === 'topic' ? isTopicRecord : isPostRecord);
-						if (match) { return match[1]; }
-						else { return null; }
+						return result[data.index === 'topic' ? 'tid_i' : 'pid_i'];
 					}).filter(Boolean);
 
 				callback(null, payload);
@@ -232,7 +225,7 @@ Solr.searchTopic = function(data, callback) {
 				callback(err);
 			} else if (obj && obj.response && obj.response.docs.length > 0) {
 				callback(null, obj.response.docs.map(function(result) {
-					return result.id;
+					return result.pid_i;
 				}));
 			} else {
 				callback(null, []);
@@ -387,7 +380,8 @@ Solr.indexTopic = function(topicObj, callback) {
 
 		// Also index the title
 		var titleObj = {
-				id: 'topic:' + topicObj.tid
+				id: 'topic:' + topicObj.tid,	// Just needs to be unique
+				'tid_i': topicObj.tid,
 			};
 		titleObj[Solr.config.titleField || 'title_t'] = topicObj.title;
 
@@ -421,7 +415,8 @@ Solr.indexPost = function(postData, callback) {
 	}
 
 	var payload = {
-			id: 'post:' + postData.pid
+			id: 'post:' + postData.pid,	// Just needs to be unique
+			'pid_i': postData.pid
 		};
 	
 	payload[Solr.config.contentField || 'description_t'] = postData.content;
