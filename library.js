@@ -20,6 +20,8 @@ var db = module.parent.require('./database'),
 			return '\\' + match;
 		});
 	},
+	isTopicRecord = /^topic:([\d]+)$/,
+	isPostRecord = /^post:([\d]+)$/,
 
 	Solr = {
 		/*
@@ -190,8 +192,10 @@ Solr.search = function(data, callback) {
 				return callback(err);
 			} else if (obj && obj.response && obj.response.docs.length > 0) {
 				var payload = obj.response.docs.map(function(result) {
-						return result.id;
-					});
+						var match = result.id.match(data.index === 'topic' ? isTopicRecord : isPostRecord);
+						if (match) { return match[1]; }
+						else { return null; }
+					}).filter(Boolean);
 
 				callback(null, payload);
 				cache.set(data.query, payload);
@@ -275,9 +279,9 @@ Solr.flush = function(req, res) {
 	Solr.client.delete('id', '*', function(err){
 		if (err) {
 			winston.error('[plugins/solr] Could not empty the search index');
-			res.send(500, err.message);
+			res.status(500).send(err.message);
 		} else {
-			res.send(200);
+			res.sendStatus(200);
 		}
 	});
 };
@@ -391,12 +395,13 @@ Solr.indexTopic = function(topicObj, callback) {
 
 		payload = payload.filter(Boolean);
 
-		// Also index the title into the main post of this topic
-		for(var x=0,numPids=payload.length;x<numPids;x++) {
-			if (payload[x].id === topicObj.mainPid) {
-				payload[x][Solr.config.titleField || 'title_t'] = topicObj.title;
-			}
-		}
+		// Also index the title
+		var titleObj = {
+				id: 'topic:' + topicObj.tid
+			};
+		titleObj[Solr.config.titleField || 'title_t'] = topicObj.title;
+
+		payload.push(titleObj);
 
 		// Increment counter for index status
 		if (Solr.indexStatus.running) { Solr.indexStatus.current++; }
@@ -430,7 +435,7 @@ Solr.indexPost = function(postData, callback) {
 	}
 
 	var payload = {
-			id: postData.pid
+			id: 'post:' + postData.pid
 		};
 	
 	payload[Solr.config.contentField || 'description_t'] = postData.content;
