@@ -217,18 +217,13 @@ Solr.searchTopic = function(data, callback) {
 		return callback(null, []);
 	}
 
-	async.parallel({
-		mainPid: async.apply(topics.getTopicField, tid, 'mainPid'),
-		pids: async.apply(topics.getPids, tid)
-	}, function(err, data) {
-		data.pids.unshift(data.mainPid);
-
+	topics.getPids(tid, function(err, pids) {
 		var fields = {},
 			query;
 
 		// Populate Query
 		fields[Solr.config.contentField || 'description_t'] = escapeSpecialChars(term);
-		fields.id = '(' + data.pids.join(' OR ') + ')';
+		fields.id = '(' + pids.join(' OR ') + ')';
 
 		query = Solr.client.createQuery().q(fields);
 
@@ -373,11 +368,6 @@ Solr.indexTopic = function(topicObj, callback) {
 	async.waterfall([
 		async.apply(topics.getPids, topicObj.tid),
 		function(pids, next) {
-			// Add OP to the list of pids to index
-			if (topicObj.mainPid && pids.indexOf(topicObj.mainPid) === -1) {
-				pids.unshift(topicObj.mainPid);
-			}
-
 			posts.getPostsFields(pids, ['pid', 'content'], next);
 		},
 		function(posts, next) {
@@ -415,12 +405,8 @@ Solr.indexTopic = function(topicObj, callback) {
 };
 
 Solr.deindexTopic = function(tid) {
-	async.parallel({
-		mainPid: async.apply(topics.getTopicField, tid, 'mainPid'),
-		pids: async.apply(topics.getPids, tid)
-	}, function(err, data) {
-		data.pids.unshift(data.mainPid);
-		var query = 'id:(' + data.pids.join(' OR ') + ')';
+	topics.getPids(tid, function(err, pids) {
+		var query = 'id:(' + pids.join(' OR ') + ')';
 		Solr.client.deleteByQuery(query, function(err) {
 			if (err) {
 				winston.error('[plugins/solr] Encountered an error while deindexing tid ' + tid);
