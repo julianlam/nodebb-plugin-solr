@@ -166,9 +166,10 @@ Solr.search = function(data, callback) {
 		winston.warn('[plugin/solr] Another search plugin (dbsearch) is enabled, so search via Solr was aborted.');
 		return callback(null, data);
 	}
-
+	var isTopic = data.index === 'topic';
+	var field = isTopic ? 'tid_i' : 'pid_id';
 	// Determine which cache to use
-	var cache = data.index === 'topic' ? titleCache : postCache;
+	var cache = isTopic ? titleCache : postCache;
 
 	if (cache.has(data.query)) {
 		callback(null, cache.get(data.query));
@@ -177,7 +178,7 @@ Solr.search = function(data, callback) {
 			query;
 
 		// Populate Fields
-		if (data.index === 'topic') { fields[Solr.config.titleField || 'title_t'] = 1; }
+		if (isTopic) { fields[Solr.config.titleField || 'title_t'] = 1; }
 		else { fields[Solr.config.contentField || 'description_t'] = 1; }
 
 		query = Solr.client.createQuery().q(data.query).dismax().qf(fields).start(0).rows(500);
@@ -187,7 +188,7 @@ Solr.search = function(data, callback) {
 				return callback(err);
 			} else if (obj && obj.response && obj.response.docs.length > 0) {
 				var payload = obj.response.docs.map(function(result) {
-						return result[data.index === 'topic' ? 'tid_i' : 'pid_i'];
+						return result[field];
 					}).filter(Boolean);
 
 				callback(null, payload);
