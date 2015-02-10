@@ -167,7 +167,7 @@ Solr.search = function(data, callback) {
 		return callback(null, data);
 	}
 	var isTopic = data.index === 'topic';
-	var field = isTopic ? 'tid_i' : 'pid_id';
+	var field = isTopic ? 'tid_i' : 'pid_i';
 	// Determine which cache to use
 	var cache = isTopic ? titleCache : postCache;
 
@@ -214,6 +214,8 @@ Solr.searchTopic = function(data, callback) {
 	topics.getPids(tid, function(err, pids) {
 		var fields = {},
 			query;
+
+		pids = pids.map(function(pid) { return '"post:' + pid + '"'; });
 
 		// Populate Query
 		fields[Solr.config.contentField || 'description_t'] = escapeSpecialChars(term);
