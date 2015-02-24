@@ -23,7 +23,7 @@
   },
   "readmeFilename": "README.md",
   "dependencies": {
-    "solr-client": "^0.2.9",
+    "solr-client": "^0.5.0",
     "lru-cache": "^2.5.0"
   },
   "nbbpm": {

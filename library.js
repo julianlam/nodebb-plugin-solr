@@ -143,7 +143,6 @@ Solr.connect = function() {
 	}
 
 	Solr.client = engine.createClient(Solr.config);
-	Solr.client.autoCommit = true;
 
 	if (Solr.config.username && Solr.config.password) {
 		Solr.client.basicAuth(Solr.config.username, Solr.config.password);
@@ -241,15 +240,20 @@ Solr.toggle = function(req, res) {
 	if (req.body.state) {
 		db.setObjectField('settings:solr', 'enabled', parseInt(req.body.state, 10) ? '1' : '0', function(err) {
 			Solr.config.enabled = req.body.state;
-			res.send(!err ? 200 : 500);
+			res.sendStatus(!err ? 200 : 500);
 		});
 	} else {
-		res.send(400, '"state" required');
+		res.status(400).send('"state" required');
 	}
 };
 
 Solr.add = function(payload, callback) {
-	Solr.client.add(payload, function(err) {
+	async.series([
+		function(next) {
+			Solr.client.add(payload, next);
+		},
+		async.apply(Solr.commit)
+	], function(err) {
 		if (err) {
 			winston.error('[plugins/solr] Could not index post ' + payload.id + ', error: ' + err.message);
 		} else if (typeof callback === 'function') {
@@ -258,16 +262,30 @@ Solr.add = function(payload, callback) {
 	});
 };
 
-Solr.remove = function(pid) {
-	Solr.client.delete('id', pid, function(err) {
+Solr.remove = function(key) {
+	async.series([
+		function(next) {
+			Solr.client.delete('id', key, next);
+		},
+		async.apply(Solr.commit)
+	], function(err) {
 		if (err) {
-			winston.error('[plugins/solr] Could not remove post ' + pid + ' from index');
+			winston.error('[plugins/solr] Could not remove ' + key + ' from index');
 		}
 	});
 };
 
+Solr.commit = function(callback) {
+	Solr.client.commit(callback);
+};
+
 Solr.flush = function(req, res) {
-	Solr.client.delete('id', '*', function(err){
+	async.series([
+		function(next) {
+			Solr.client.deleteAll(next);
+		},
+		async.apply(Solr.commit)
+	], function(err) {
 		if (err) {
 			winston.error('[plugins/solr] Could not empty the search index');
 			res.status(500).send(err.message);
@@ -291,7 +309,7 @@ Solr.post.delete = function(pid, callback) {
 		return;
 	}
 
-	Solr.remove(pid);
+	Solr.remove('post:' + pid);
 
 	if (typeof callback === 'function') {
 		if (!parseInt(Solr.config.enabled, 10)) {
