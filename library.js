@@ -13,6 +13,7 @@ var db = module.parent.require('./database'),
 
 	topics = module.parent.require('./topics'),
 	posts = module.parent.require('./posts'),
+	utils = require('./lib/utils'),
 
 	// This method is necessary until solr-client 0.3.x is released
 	escapeSpecialChars = function(s) {
@@ -165,13 +166,15 @@ Solr.search = function(data, callback) {
 		winston.warn('[plugin/solr] Another search plugin (dbsearch) is enabled, so search via Solr was aborted.');
 		return callback(null, data);
 	}
-	var isTopic = data.index === 'topic';
-	var field = isTopic ? 'tid_i' : 'pid_i';
+	var isTopic = data.index === 'topic',
+		field = isTopic ? 'tid_i' : 'pid_i',
+		term = utils.addFiltersToTerm(data.content, data);
+
 	// Determine which cache to use
 	var cache = isTopic ? titleCache : postCache;
 
-	if (cache.has(data.query)) {
-		callback(null, cache.get(data.query));
+	if (cache.has(term)) {
+		callback(null, cache.get(term));
 	} else {
 		var fields = {},
 			query;
@@ -180,7 +183,7 @@ Solr.search = function(data, callback) {
 		if (isTopic) { fields[Solr.config.titleField || 'title_t'] = 1; }
 		else { fields[Solr.config.contentField || 'description_t'] = 1; }
 
-		query = Solr.client.createQuery().q(data.query).dismax().qf(fields).start(0).rows(500);
+		query = Solr.client.createQuery().q(term).edismax().qf(fields).start(0).rows(500);
 
 		Solr.client.search(query, function(err, obj) {
 			if (err) {
@@ -191,13 +194,13 @@ Solr.search = function(data, callback) {
 					}).filter(Boolean);
 
 				callback(null, payload);
-				cache.set(data.query, payload);
+				cache.set(term, payload);
 			} else {
 				callback(null, []);
-				cache.set(data.query, []);
+				cache.set(term, []);
 			}
 
-			winston.verbose('[plugin/solr] Search (' + data.index + ') for "' + data.query + '" returned ' + obj.response.docs.length + ' results');
+			winston.verbose('[plugin/solr] Search (' + data.index + ') for "' + data.content + '" returned ' + obj.response.docs.length + ' results');
 		});
 	}
 };
