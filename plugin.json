@@ -18,6 +18,7 @@
         { "hook": "action:topic.delete", "method": "topic.delete"},
         { "hook": "action:topic.restore", "method": "topic.restore"},
         { "hook": "action:topic.edit", "method": "topic.edit"},
+        { "hook": "action:topic.move", "method": "topic.move"},
 
         { "hook": "filter:search.query", "method": "search"},
         { "hook": "filter:topic.search", "method": "searchTopic"}

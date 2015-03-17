@@ -376,13 +376,41 @@ Solr.topic.edit = function(topicObj) {
 	});
 };
 
+Solr.topic.move = function(data) {
+	if (!parseInt(Solr.config.enabled, 10)) {
+		return;
+	}
+
+	async.waterfall([
+		async.apply(Solr.deindexTopic, data.tid),
+		async.apply(topics.getTopicFields, data.tid, ['tid', 'mainPid', 'title', 'cid', 'uid']),
+		async.apply(Solr.indexTopic)
+	], function(err) {
+		if (!err) {
+			winston.verbose('[plugins/solr] tid ' + data.tid + ' moved, index updated');
+		}
+	});
+};
+
 /* Topic and Post indexing methods */
 
 Solr.indexTopic = function(topicObj, callback) {
 	async.waterfall([
 		async.apply(topics.getPids, topicObj.tid),
 		function(pids, next) {
-			posts.getPostsFields(pids, ['pid', 'content'], next);
+			async.parallel({
+				posts: async.apply(posts.getPostsFields, pids, ['pid', 'content', 'uid']),
+				cid: async.apply(topics.getTopicField, topicObj.tid, 'cid')
+			}, function(err, metadata) {
+				if (err) {
+					return next(err);
+				}
+
+				next(null, metadata.posts.map(function(post) {
+					post.cid = metadata.cid;
+					return post;
+				}));
+			});
 		},
 		function(posts, next) {
 			winston.verbose('[plugins/solr] Indexing tid ' + topicObj.tid + ' (' + posts.length + ' posts)');
@@ -403,6 +431,8 @@ Solr.indexTopic = function(topicObj, callback) {
 		var titleObj = {
 				id: 'topic:' + topicObj.tid,	// Just needs to be unique
 				'tid_i': topicObj.tid,
+				'cid_i': topicObj.cid,
+				'uid_i': topicObj.uid
 			};
 		titleObj[Solr.config.titleField || 'title_t'] = topicObj.title;
 
@@ -419,12 +449,18 @@ Solr.indexTopic = function(topicObj, callback) {
 	});
 };
 
-Solr.deindexTopic = function(tid) {
+Solr.deindexTopic = function(tid, callback) {
 	topics.getPids(tid, function(err, pids) {
 		var query = 'id:(' + pids.join(' OR ') + ')';
 		Solr.client.deleteByQuery(query, function(err) {
 			if (err) {
 				winston.error('[plugins/solr] Encountered an error while deindexing tid ' + tid);
+			} else {
+				winston.verbose('[plugins/solr] Removed tid ' + tid + ' from index');
+			}
+
+			if (typeof callback === 'function') {
+				callback(err);
 			}
 		});
 	});
@@ -437,7 +473,9 @@ Solr.indexPost = function(postData, callback) {
 
 	var payload = {
 			id: 'post:' + postData.pid,	// Just needs to be unique
-			'pid_i': postData.pid
+			'pid_i': postData.pid,
+			'cid_i': postData.cid,
+			'uid_i': postData.uid
 		};
 	
 	payload[Solr.config.contentField || 'description_t'] = postData.content;
@@ -467,7 +505,7 @@ Solr.rebuildIndex = function(req, res) {
 			Solr.indexStatus.current = 0;
 			Solr.indexStatus.total = tids.length;
 
-			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title'], next);
+			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title', 'cid', 'uid'], next);
 		}
 	], function(err, topics) {
 		if (err) {

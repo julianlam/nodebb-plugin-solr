@@ -257,7 +257,7 @@
 					modalEl = barEl.parents('.modal'),
 					progress;
 
-				$.get('/admin/plugins/solr/rebuildProgress').success(function(percentage) {
+				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').success(function(percentage) {
 					progress = parseFloat(percentage);
 					if (progress !== -1) {
 						if (progress > 5) { updateBar(progress); }
