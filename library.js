@@ -265,15 +265,16 @@ Solr.add = function(payload, callback) {
 	});
 };
 
-Solr.remove = function(key) {
-	async.series([
-		function(next) {
-			Solr.client.delete('id', key, next);
-		},
-		async.apply(Solr.commit)
-	], function(err) {
+Solr.remove = function(key, callback) {
+	Solr.client.delete('id', key, function(err) {
 		if (err) {
 			winston.error('[plugins/solr] Could not remove ' + key + ' from index');
+		}
+
+		if (typeof callback === 'function') {
+			callback(err);
+		} else {
+			Solr.commit();
 		}
 	});
 };
@@ -387,7 +388,8 @@ Solr.topic.move = function(data) {
 	async.waterfall([
 		async.apply(Solr.deindexTopic, data.tid),
 		async.apply(topics.getTopicFields, data.tid, ['tid', 'mainPid', 'title', 'cid', 'uid']),
-		async.apply(Solr.indexTopic)
+		async.apply(Solr.indexTopic),
+		async.apply(Solr.add)
 	], function(err) {
 		if (!err) {
 			winston.verbose('[plugins/solr] tid ' + data.tid + ' moved, index updated');
@@ -401,16 +403,13 @@ Solr.indexTopic = function(topicObj, callback) {
 	async.waterfall([
 		async.apply(topics.getPids, topicObj.tid),
 		function(pids, next) {
-			async.parallel({
-				posts: async.apply(posts.getPostsFields, pids, ['pid', 'content', 'uid']),
-				cid: async.apply(topics.getTopicField, topicObj.tid, 'cid')
-			}, function(err, metadata) {
+			posts.getPostsFields(pids, ['pid', 'content', 'uid'], function(err, posts) {
 				if (err) {
 					return next(err);
 				}
 
-				next(null, metadata.posts.map(function(post) {
-					post.cid = metadata.cid;
+				next(null, posts.map(function(post) {
+					post.cid = topicObj.cid;
 					return post;
 				}));
 			});
@@ -454,8 +453,15 @@ Solr.indexTopic = function(topicObj, callback) {
 
 Solr.deindexTopic = function(tid, callback) {
 	topics.getPids(tid, function(err, pids) {
-		var query = 'id:(' + pids.join(' OR ') + ')';
-		Solr.client.deleteByQuery(query, function(err) {
+		var commands = [
+				async.apply(Solr.remove, 'topic:' + tid)
+			];
+		for(var x=0,numPids=pids.length;x<numPids;x++) {
+			commands.push(async.apply(Solr.remove, 'post:' + pids[x]));
+		}
+		commands.push(async.apply(Solr.commit));
+
+		async.series(commands, function(err) {
 			if (err) {
 				winston.error('[plugins/solr] Encountered an error while deindexing tid ' + tid);
 			} else {
