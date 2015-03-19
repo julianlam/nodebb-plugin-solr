@@ -334,6 +334,16 @@ Solr.post.restore = function(postData) {
 
 Solr.post.edit = Solr.post.restore;
 
+Solr.post.move = function(payload) {
+	async.parallel({
+		postData: async.apply(posts.getPostFields, payload.post.pid, ['pid', 'content', 'uid']),
+		cid: async.apply(posts.getCidByPid, payload.post.pid)
+	}, function(err, metadata) {
+		metadata.postData.cid = metadata.cid;
+		Solr.indexPost(metadata.postData);
+	});
+};
+
 Solr.topic = {};
 Solr.topic.post = function(topicObj) {
 	if (!parseInt(Solr.config.enabled, 10)) {

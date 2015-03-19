@@ -13,6 +13,7 @@
         { "hook": "action:post.delete", "method": "post.delete"},
         { "hook": "action:post.restore", "method": "post.restore"},
         { "hook": "action:post.edit", "method": "post.edit"},
+        { "hook": "action:post.move", "method": "post.move"},
 
         { "hook": "action:topic.post", "method": "topic.post"},
         { "hook": "action:topic.delete", "method": "topic.delete"},
