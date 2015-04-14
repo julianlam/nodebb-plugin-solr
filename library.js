@@ -377,7 +377,7 @@ Solr.topic.restore = function(topicObj) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
-        
+
 	Solr.indexTopic(topicObj);
 };
 
@@ -422,9 +422,11 @@ Solr.topic.move = function(data) {
 /* Topic and Post indexing methods */
 
 Solr.indexTopic = function(topicObj, callback) {
-	if (parseInt(topicObj.deleted) === 1) {
+	if (topicObj.hasOwnProperty('deleted') && parseInt(topicObj.deleted, 10) === 1) {
+		callback = callback || function() {};
 		return callback();
 	}
+
 	async.waterfall([
 		async.apply(topics.getPids, topicObj.tid),
 		function(pids, next) {
@@ -471,7 +473,7 @@ Solr.indexTopic = function(topicObj, callback) {
 		if (typeof callback === 'function') {
 			callback(undefined, payload);
 		} else {
-			Solr.add(payload, callback);
+			Solr.add(payload);
 		}
 	});
 };
