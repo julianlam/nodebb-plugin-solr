@@ -138,6 +138,12 @@
 		<div class="panel panel-warning">
 			<div class="panel-heading">Advanced Options</div>
 			<div class="panel-body">
+				<button class="btn btn-block btn-default" data-action="dropCaches">Drop Search Cache</button>
+				<p class="help-block">
+					Searches made by forum users are saved for twenty minutes, in order to reduce strain on the
+					search engine. Utilise this option if you wish to drop this cache so all new searches directly
+					query Solr again.
+				</p>
 				<button class="btn btn-block btn-success" data-action="rebuild">Rebuild Search Index</button>
 				<p class="help-block">
 					This option reads every topic and post saved in the database and adds it to the search index.
@@ -183,6 +189,24 @@
 						});
 					});
 				}
+			});
+		});
+
+		// Drop caches event
+		$('button[data-action="dropCaches"]').on('click', function() {
+			$.ajax({
+				url: config.relative_path + '/admin/plugins/solr/cache',
+				type: 'DELETE',
+				data: {
+					_csrf: csrf
+				}
+			}).success(function() {
+				app.alert({
+					type: 'success',
+					alert_id: 'solr-flushed',
+					title: 'Search cache dropped',
+					timeout: 2500
+				});
 			});
 		});
 

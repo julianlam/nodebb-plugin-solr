@@ -8,8 +8,8 @@ var db = module.parent.require('./database'),
 	async = module.parent.require('async'),
 
 	LRU = require('lru-cache'),
-	titleCache = LRU({ max: 20, maxAge: 1000 * 60 * 60 }),	// Remember the last 20 searches in the past hour
-	postCache = LRU({ max: 20, maxAge: 1000 * 60 * 60 }),	// Remember the last 20 searches in the past hour
+	titleCache = LRU({ max: 20, maxAge: 1000 * 60 * 20 }),	// Remember the last 20 searches in the past twenty minutes
+	postCache = LRU({ max: 20, maxAge: 1000 * 60 * 20 }),	// Remember the last 20 searches in the past twenty minutes
 
 	topics = module.parent.require('./topics'),
 	posts = module.parent.require('./posts'),
@@ -64,6 +64,7 @@ Solr.init = function(data, callback) {
 	data.router.get('/admin/plugins/solr/rebuildProgress', Solr.getIndexProgress);
 	data.router.post('/admin/plugins/solr/toggle', Solr.toggle);
 	data.router.delete('/admin/plugins/solr/flush', Solr.flush);
+	data.router.delete('/admin/plugins/solr/cache', Solr.dropCaches);
 
 	Solr.getSettings(Solr.connect);
 
@@ -294,9 +295,20 @@ Solr.flush = function(req, res) {
 			winston.error('[plugins/solr] Could not empty the search index');
 			res.status(500).send(err.message);
 		} else {
+			Solr.dropCaches();
+			winston.verbose('[plugins/solr] Search index flushed!');
 			res.sendStatus(200);
 		}
 	});
+};
+
+Solr.dropCaches = function(req, res) {
+	postCache.reset();
+	titleCache.reset();
+
+	if (res && res.sendStatus) {
+		res.sendStatus(200);
+	}
 };
 
 Solr.post = {};
