@@ -377,7 +377,7 @@ Solr.topic.restore = function(topicObj) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
-
+        
 	Solr.indexTopic(topicObj);
 };
 
@@ -422,6 +422,9 @@ Solr.topic.move = function(data) {
 /* Topic and Post indexing methods */
 
 Solr.indexTopic = function(topicObj, callback) {
+	if (parseInt(topicObj.deleted) === 1) {
+		return callback();
+	}
 	async.waterfall([
 		async.apply(topics.getPids, topicObj.tid),
 		function(pids, next) {
@@ -536,7 +539,7 @@ Solr.rebuildIndex = function(req, res) {
 			Solr.indexStatus.current = 0;
 			Solr.indexStatus.total = tids.length;
 
-			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title', 'cid', 'uid'], next);
+			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title', 'cid', 'uid', 'deleted'], next);
 		}
 	], function(err, topics) {
 		if (err) {
