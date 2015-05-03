@@ -504,7 +504,11 @@ Solr.deindexTopic = function(tid, callback) {
 
 Solr.indexPost = function(postData, callback) {
 	if (!postData || !postData.pid || !postData.content) {
-		return callback(null);
+		if (typeof callback === 'function') {
+			callback(null);
+		}
+
+		return;
 	}
 
 	var payload = {
