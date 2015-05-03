@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-solr",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Full-text searching for NodeBB using Apache Solr",
   "main": "library.js",
   "repository": {
