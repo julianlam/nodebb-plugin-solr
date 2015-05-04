@@ -562,7 +562,8 @@ Solr.rebuildIndex = function(req, res) {
 					if (Array.isArray(topics)) {
 						return currentPayload.concat(topics);
 					} else {
-						return currentPayload.push(topics);
+						currentPayload.push(topics);
+						return currentPayload;
 					}
 				}, []).filter(function(entry) {
 					return entry.hasOwnProperty('id');
