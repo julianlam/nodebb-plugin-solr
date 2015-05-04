@@ -566,7 +566,7 @@ Solr.rebuildIndex = function(req, res) {
 						return currentPayload;
 					}
 				}, []).filter(function(entry) {
-					return entry.hasOwnProperty('id');
+					return entry && entry.hasOwnProperty('id');
 				});
 
 			Solr.add(payload, function(err) {
