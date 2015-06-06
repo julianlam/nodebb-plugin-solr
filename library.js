@@ -365,12 +365,12 @@ Solr.topic.post = function(topicObj) {
 	Solr.indexTopic(topicObj);
 };
 
-Solr.topic.delete = function(tid) {
+Solr.topic.delete = function(topicObj) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
 
-	Solr.deindexTopic(tid);
+	Solr.deindexTopic(topicObj.tid);
 };
 
 Solr.topic.restore = function(topicObj) {
