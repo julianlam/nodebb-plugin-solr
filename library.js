@@ -366,11 +366,12 @@ Solr.topic.post = function(topicObj) {
 };
 
 Solr.topic.delete = function(topicObj) {
+	var tid = (void 0 === topicObj.tid) ? topicObj : topicObj.tid;
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
 
-	Solr.deindexTopic(topicObj.tid);
+	Solr.deindexTopic(tid);
 };
 
 Solr.topic.restore = function(topicObj) {
