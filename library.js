@@ -365,7 +365,8 @@ Solr.topic.post = function(topicObj) {
 	Solr.indexTopic(topicObj);
 };
 
-Solr.topic.delete = function(tid) {
+Solr.topic.delete = function(topicObj) {
+	var tid = (void 0 === topicObj.tid) ? topicObj : topicObj.tid;
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
