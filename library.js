@@ -15,13 +15,6 @@ var db = module.parent.require('./database'),
 	posts = module.parent.require('./posts'),
 	utils = require('./lib/utils'),
 
-	// This method is necessary until solr-client 0.3.x is released
-	escapeSpecialChars = function(s) {
-		return s.replace(/([\+\-&\|!\(\)\{\}\[\]\^"~\*\?:\\\ ])/g, function(match) {
-			return '\\' + match;
-		});
-	},
-
 	Solr = {
 		/*
 			Defaults configs:
@@ -221,7 +214,7 @@ Solr.searchTopic = function(data, callback) {
 		pids = pids.map(function(pid) { return '"post:' + pid + '"'; });
 
 		// Populate Query
-		fields[Solr.config.contentField || 'description_t'] = escapeSpecialChars(term);
+		fields[Solr.config.contentField || 'description_t'] = term;
 		fields.id = '(' + pids.join(' OR ') + ')';
 
 		query = Solr.client.createQuery().q(fields);
