@@ -13,6 +13,7 @@ var db = module.parent.require('./database'),
 
 	topics = module.parent.require('./topics'),
 	posts = module.parent.require('./posts'),
+	user = module.parent.require('./user'),
 	utils = require('./lib/utils'),
 
 	Solr = {
@@ -532,23 +533,51 @@ Solr.rebuildIndex = function(req, res) {
 		res.sendStatus(200);
 	}
 
+	Solr.indexStatus.running = true;
+	Solr.indexStatus.current = 0;
+
+	async.series({
+		total: function(next) {
+			async.parallel({
+				topics: async.apply(db.sortedSetCount, 'topics:tid', 0, Date.now()),
+				users: async.apply(db.sortedSetCount, 'users:joindate', 0, Date.now())
+			}, function(err, results) {
+				Solr.indexStatus.total = results.topics + results.users;
+				next();
+			});
+		},
+		topics: async.apply(Solr.rebuildTopicIndex),
+		users: async.apply(Solr.rebuildUserIndex)
+	}, function(err, results) {
+		var payload = results.topics.concat(results.users);
+
+		Solr.add(payload, function(err) {
+			if (!err) {
+				winston.info('[plugins/solr] Re-indexing completed.');
+				Solr.indexStatus.running = false;
+			} else {
+				winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
+			}
+		});
+	});
+};
+
+Solr.rebuildTopicIndex = function(callback) {
 	async.waterfall([
 		async.apply(db.getSortedSetRange, 'topics:tid', 0, -1),
 		function(tids, next) {
-			Solr.indexStatus.running = true;
-			Solr.indexStatus.current = 0;
-			Solr.indexStatus.total = tids.length;
-
 			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title', 'cid', 'uid', 'deleted'], next);
 		}
 	], function(err, topics) {
 		if (err) {
-			winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
+			winston.error('[plugins/solr/reindexTopic] Could not retrieve topic listing for indexing. Error: ' + err.message);
+			return callback(err);
 		}
 
 		async.mapLimit(topics, 100, Solr.indexTopic, function(err, topicPayloads) {
 			if (err) {
-				winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
+				winston.error('[plugins/solr/reindexTopic] Could not retrieve topic content for indexing. Error: ' + err.message);
+				return callback(err);
 			}
 
 			// Normalise and validate the entries before they're added to Solr
@@ -563,15 +592,35 @@ Solr.rebuildIndex = function(req, res) {
 					return entry && entry.hasOwnProperty('id');
 				});
 
-			Solr.add(payload, function(err) {
-				if (!err) {
-					winston.info('[plugins/solr] Re-indexing completed.');
-					Solr.indexStatus.running = false;
-				} else {
-					winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
-				}
-			});
+			if (typeof callback === 'function') {
+				callback(null, payload);
+			} else {
+				Solr.add(payload, function(err) {
+					if (!err) {
+						winston.info('[plugins/solr/reindexTopic] Topic re-indexing completed.');
+					} else {
+						winston.error('[plugins/solr/reindexTopic] Could not insert data into Solr for indexing. Error: ' + err.message);
+					}
+				});
+			}
 		});
+	});
+};
+
+Solr.rebuildUserIndex = function(callback) {
+	async.waterfall([
+		async.apply(db.getSortedSetRange, 'users:joindate', 0, -1),
+		function(uids, next) {
+			user.getMultipleUserFields(uids, ['uid', 'username', 'userslug', 'deleted'] , next);
+		}
+	], function(err, users) {
+		// Filter out deleted users
+		users = users.filter(function(userObj) {
+			return parseInt(userObj.deleted, 10) !== 1
+		});
+
+		console.log(users);
+		callback(null, []);
 	});
 };
 
