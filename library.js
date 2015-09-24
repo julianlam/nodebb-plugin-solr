@@ -320,15 +320,8 @@ Solr.post.delete = function(pid, callback) {
 	}
 };
 
-Solr.post.restore = function(postData) {
-	if (!parseInt(Solr.config.enabled, 10)) {
-		return;
-	}
-
-	Solr.indexPost(postData);
-};
-
-Solr.post.edit = Solr.post.restore;
+Solr.post.restore = Solr.post.save;
+Solr.post.edit = Solr.post.save;
 
 Solr.topic = {};
 Solr.topic.post = function(topicObj) {
@@ -347,13 +340,7 @@ Solr.topic.delete = function(tid) {
 	Solr.deindexTopic(tid);
 };
 
-Solr.topic.restore = function(topicObj) {
-	if (!parseInt(Solr.config.enabled, 10)) {
-		return;
-	}
-
-	Solr.indexTopic(topicObj);
-};
+Solr.topic.restore = Solr.topic.post;
 
 Solr.topic.edit = function(topicObj) {
 	if (!parseInt(Solr.config.enabled, 10)) {
@@ -370,7 +357,7 @@ Solr.topic.edit = function(topicObj) {
 		if (!payload) {
 			return winston.warn('[solr] no payload for pid ' + topicObj.mainPid);
 		}
-	
+
 		payload[Solr.config.titleField || 'title_t'] = topicObj.title;
 		Solr.add(payload);
 	});
@@ -439,7 +426,7 @@ Solr.indexPost = function(postData, callback) {
 			id: 'post:' + postData.pid,	// Just needs to be unique
 			'pid_i': postData.pid
 		};
-	
+
 	payload[Solr.config.contentField || 'description_t'] = postData.content;
 
 	if (typeof callback === 'function') {
@@ -447,7 +434,7 @@ Solr.indexPost = function(postData, callback) {
 	} else {
 		Solr.add(payload);
 	}
-	
+
 };
 
 Solr.deindexPost = Solr.post.delete;
