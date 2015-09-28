@@ -208,29 +208,25 @@ Solr.searchTopic = function(data, callback) {
 		return callback(null, []);
 	}
 
-	topics.getPids(tid, function(err, pids) {
-		var fields = {},
-			query;
+	var fields = {},
+		query;
 
-		pids = pids.map(function(pid) { return '"post:' + pid + '"'; });
+	// Populate Query
+	fields[Solr.config.contentField || 'description_t'] = term;
+	fields['tid_i'] = tid;
 
-		// Populate Query
-		fields[Solr.config.contentField || 'description_t'] = term;
-		fields.id = '(' + pids.join(' OR ') + ')';
+	query = Solr.client.createQuery().q(fields);
 
-		query = Solr.client.createQuery().q(fields);
-
-		Solr.client.search(query, function(err, obj) {
-			if (err) {
-				callback(err);
-			} else if (obj && obj.response && obj.response.docs.length > 0) {
-				callback(null, obj.response.docs.map(function(result) {
-					return result.pid_i;
-				}));
-			} else {
-				callback(null, []);
-			}
-		});
+	Solr.client.search(query, function(err, obj) {
+		if (err) {
+			callback(err);
+		} else if (obj && obj.response && obj.response.docs.length > 0) {
+			callback(null, obj.response.docs.map(function(result) {
+				return result.pid_i;
+			}));
+		} else {
+			callback(null, []);
+		}
 	});
 };
 
@@ -412,7 +408,7 @@ Solr.indexTopic = function(topicObj, callback) {
 	async.waterfall([
 		async.apply(topics.getPids, topicObj.tid),
 		function(pids, next) {
-			posts.getPostsFields(pids, ['pid', 'content', 'uid'], function(err, posts) {
+			posts.getPostsFields(pids, ['pid', 'tid', 'content', 'uid'], function(err, posts) {
 				if (err) {
 					return next(err);
 				}
@@ -496,6 +492,7 @@ Solr.indexPost = function(postData, callback) {
 	var payload = {
 			id: 'post:' + postData.pid,	// Just needs to be unique
 			'pid_i': postData.pid,
+			'tid_i': postData.tid,
 			'cid_i': postData.cid,
 			'uid_i': postData.uid
 		};
@@ -606,7 +603,6 @@ Solr.rebuildUserIndex = function(callback) {
 			return parseInt(userObj.deleted, 10) !== 1
 		});
 
-		console.log(users);
 		callback(null, []);
 	});
 };
