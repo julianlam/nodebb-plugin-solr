@@ -595,7 +595,7 @@ Solr.rebuildUserIndex = function(callback) {
 	async.waterfall([
 		async.apply(db.getSortedSetRange, 'users:joindate', 0, -1),
 		function(uids, next) {
-			user.getMultipleUserFields(uids, ['uid', 'username', 'userslug', 'deleted'] , next);
+			user.getUsersFields(uids, ['uid', 'username', 'userslug', 'deleted'] , next);
 		}
 	], function(err, users) {
 		// Filter out deleted users
