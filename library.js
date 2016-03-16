@@ -365,7 +365,7 @@ Solr.topic.edit = function(topicObj) {
 	}
 
 	async.waterfall([
-		async.apply(posts.getPostFields,topicObj.mainPid, ['pid', 'content']),
+		async.apply(posts.getPostFields, topicObj.mainPid, ['pid', 'tid', 'uid', 'content']),
 		Solr.indexPost,
 	], function(err, payload) {
 		if (err) {
@@ -376,6 +376,14 @@ Solr.topic.edit = function(topicObj) {
 		}
 
 		payload[Solr.config.titleField || 'title_t'] = topicObj.title;
+		payload = [payload];
+		payload.push({
+			id: 'topic:' + topicObj.tid,
+			'tid_i': topicObj.tid,
+			'cid_i': topicObj.cid,
+			'uid_i': topicObj.uid,
+			title_t: topicObj.title
+		});
 		Solr.add(payload);
 	});
 };
