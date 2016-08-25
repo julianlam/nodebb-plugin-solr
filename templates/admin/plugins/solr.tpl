@@ -219,7 +219,9 @@
 					_csrf: csrf,
 					state: parseInt($('button[data-action="toggle"]').attr('data-enabled'), 10) ^ 1
 				}
-			}).success(ajaxify.refresh);
+			}).success(function() {
+				ajaxify.refresh();
+			});
 		});
 
 		// Index All event
