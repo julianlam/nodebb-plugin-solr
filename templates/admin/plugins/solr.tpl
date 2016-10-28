@@ -178,7 +178,7 @@
 						data: {
 							_csrf: csrf
 						}
-					}).success(function() {
+					}).done(function() {
 						ajaxify.refresh();
 
 						app.alert({
@@ -200,7 +200,7 @@
 				data: {
 					_csrf: csrf
 				}
-			}).success(function() {
+			}).done(function() {
 				app.alert({
 					type: 'success',
 					alert_id: 'solr-flushed',
@@ -219,7 +219,7 @@
 					_csrf: csrf,
 					state: parseInt($('button[data-action="toggle"]').attr('data-enabled'), 10) ^ 1
 				}
-			}).success(function() {
+			}).done(function() {
 				ajaxify.refresh();
 			});
 		});
@@ -239,7 +239,7 @@
 						data: {
 							_csrf: csrf
 						}
-					}).success(function() {
+					}).done(function() {
 						checkIndexStatus(function() {
 							ajaxify.refresh();
 
@@ -283,7 +283,7 @@
 					modalEl = barEl.parents('.modal'),
 					progress;
 
-				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').success(function(percentage) {
+				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(percentage) {
 					progress = parseFloat(percentage);
 					if (progress !== -1) {
 						if (progress > 5) { updateBar(progress); }
