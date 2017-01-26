@@ -302,20 +302,20 @@ Solr.dropCaches = function(req, res) {
 };
 
 Solr.post = {};
-Solr.post.save = function(postData) {
+Solr.post.save = function(data) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
 
-	Solr.indexPost(postData);
+	Solr.indexPost(data.post);
 };
 
-Solr.post.delete = function(pid, callback) {
+Solr.post.delete = function(data, callback) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
 
-	Solr.remove('post:' + pid);
+	Solr.remove('post:' + data.post.pid);
 
 	if (typeof callback === 'function') {
 		if (!parseInt(Solr.config.enabled, 10)) {
@@ -340,15 +340,16 @@ Solr.post.move = function(payload) {
 };
 
 Solr.topic = {};
-Solr.topic.post = function(topicObj) {
+Solr.topic.post = function(data) {
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
 
-	Solr.indexTopic(topicObj);
+	Solr.indexTopic(data.topic);
 };
 
-Solr.topic.delete = function(topicObj) {
+Solr.topic.delete = function(data) {
+	var topicObj = data.topic;
 	var tid = (void 0 === topicObj.tid) ? topicObj : topicObj.tid;
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
@@ -359,7 +360,9 @@ Solr.topic.delete = function(topicObj) {
 
 Solr.topic.restore = Solr.topic.post;
 
-Solr.topic.edit = function(topicObj) {
+Solr.topic.edit = function(data) {
+	var topicObj = data.topic;
+
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}

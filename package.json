@@ -27,6 +27,6 @@
     "lru-cache": "^2.5.0"
   },
   "nbbpm": {
-    "compatibility": "^2.0.0"
+    "compatibility": "^1.5.0"
   }
 }

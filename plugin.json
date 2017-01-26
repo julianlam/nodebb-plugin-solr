@@ -10,19 +10,19 @@
 		{ "hook": "filter:admin.notices", "method": "getNotices"},
 
 		{ "hook": "action:post.save", "method": "post.save"},
-        { "hook": "action:post.delete", "method": "post.delete"},
-        { "hook": "action:post.restore", "method": "post.restore"},
-        { "hook": "action:post.edit", "method": "post.edit"},
-        { "hook": "action:post.move", "method": "post.move"},
+		{ "hook": "action:post.delete", "method": "post.delete"},
+		{ "hook": "action:post.restore", "method": "post.restore"},
+		{ "hook": "action:post.edit", "method": "post.edit"},
+		{ "hook": "action:post.move", "method": "post.move"},
 
-        { "hook": "action:topic.post", "method": "topic.post"},
-        { "hook": "action:topic.delete", "method": "topic.delete"},
-        { "hook": "action:topic.restore", "method": "topic.restore"},
-        { "hook": "action:topic.edit", "method": "topic.edit"},
-        { "hook": "action:topic.move", "method": "topic.move"},
+		{ "hook": "action:topic.post", "method": "topic.post"},
+		{ "hook": "action:topic.delete", "method": "topic.delete"},
+		{ "hook": "action:topic.restore", "method": "topic.restore"},
+		{ "hook": "action:topic.edit", "method": "topic.edit"},
+		{ "hook": "action:topic.move", "method": "topic.move"},
 
-        { "hook": "filter:search.query", "method": "search"},
-        { "hook": "filter:topic.search", "method": "searchTopic"}
+		{ "hook": "filter:search.query", "method": "search"},
+		{ "hook": "filter:topic.search", "method": "searchTopic"}
 	],
 	"less": [
 		"static/style.less"
