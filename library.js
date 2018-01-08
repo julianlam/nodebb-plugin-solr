@@ -619,9 +619,14 @@ Solr.rebuildUserIndex = function(callback) {
 };
 
 Solr.getIndexProgress = function(req, res) {
-	if (Solr.indexStatus.running && Solr.indexStatus.total > 0) {
-		var progress = (Solr.indexStatus.current / Solr.indexStatus.total).toFixed(4) * 100;
-		res.status(200).send(progress.toString());
+	if (Solr.indexStatus.running) {
+		if(Solr.indexStatus.total > 0) {
+			var progress = (Solr.indexStatus.current / Solr.indexStatus.total).toFixed(4) * 100;
+			res.status(200).send(progress.toString());
+		}
+		else {
+			res.status(200).send("0");
+		}
 	} else {
 		res.status(200).send('-1');
 	}
