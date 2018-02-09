@@ -569,14 +569,20 @@ Solr.rebuildTopicIndex = function(callback) {
 			return callback(err);
 		}
 
-		async.mapLimit(topics, 100, Solr.indexTopic, function(err, topicPayloads) {
-			if (err) {
-				winston.error('[plugins/solr/reindexTopic] Could not retrieve topic content for indexing. Error: ' + err.message);
-				return callback(err);
-			}
+		var indexedTopicCount = 0;
+		async.whilst(function () {
+			return indexedTopicCount < topics.length;
+		},
+		function (callback) {
+			var indexingTopics = topics.slice(indexedTopicCount, indexedTopicCount + 1000);
+			async.mapLimit(indexingTopics, 100, Solr.indexTopic, function(err, topicPayloads) {
+				if (err) {
+					winston.error('[plugins/solr/reindexTopic] Could not retrieve topic content for indexing. Error: ' + err.message);
+					return callback(err);
+				}
 
-			// Normalise and validate the entries before they're added to Solr
-			var payload = topicPayloads.reduce(function(currentPayload, topics) {
+				// Normalise and validate the entries before they're added to Solr
+				var payload = topicPayloads.reduce(function(currentPayload, topics) {
 					if (Array.isArray(topics)) {
 						return currentPayload.concat(topics);
 					} else {
@@ -587,16 +593,25 @@ Solr.rebuildTopicIndex = function(callback) {
 					return entry && entry.hasOwnProperty('id');
 				});
 
-			if (typeof callback === 'function') {
-				callback(null, payload);
-			} else {
-				Solr.add(payload, function(err) {
-					if (!err) {
-						winston.info('[plugins/solr/reindexTopic] Topic re-indexing completed.');
-					} else {
-						winston.error('[plugins/solr/reindexTopic] Could not insert data into Solr for indexing. Error: ' + err.message);
+				indexedTopicCount += indexingTopics.length;
+
+				Solr.add(payload, function (err) {
+					if(!err) {
+						var progressPercent = (indexedTopicCount / topics.length).toFixed(2);
+						winston.info("[plugins/solr/reindexTopic] Partial re-indexing completed: " + progressPercent + "%")
 					}
-				});
+
+					callback(err);
+				})
+			});
+		},
+		function (err) {
+			if (typeof callback === 'function') {
+				callback(err, []);
+			} else if (!err) {
+				winston.info('[plugins/solr/reindexTopic] Topic re-indexing completed.');
+			} else {
+				winston.error('[plugins/solr/reindexTopic] Could not insert data into Solr for indexing. Error: ' + err.message);
 			}
 		});
 	});
