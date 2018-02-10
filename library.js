@@ -597,7 +597,7 @@ Solr.rebuildTopicIndex = function(callback) {
 
 				Solr.add(payload, function (err) {
 					if(!err) {
-						var progressPercent = (indexedTopicCount / topics.length).toFixed(2);
+						var progressPercent = (100 * indexedTopicCount / topics.length).toFixed(2);
 						winston.info("[plugins/solr/reindexTopic] Partial re-indexing completed: " + progressPercent + "%")
 					}
 
