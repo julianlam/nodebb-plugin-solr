@@ -534,19 +534,15 @@ Solr.rebuildIndex = function(req, res) {
 	async.series({
 		total: function(next) {
 			async.parallel({
-				topics: async.apply(db.sortedSetCount, 'topics:tid', 0, Date.now()),
-				users: async.apply(db.sortedSetCount, 'users:joindate', 0, Date.now())
+				topics: async.apply(db.sortedSetCount, 'topics:tid', 0, Date.now())
 			}, function(err, results) {
-				Solr.indexStatus.total = results.topics + results.users;
+				Solr.indexStatus.total = results.topics;
 				next();
 			});
 		},
-		topics: async.apply(Solr.rebuildTopicIndex),
-		users: async.apply(Solr.rebuildUserIndex)
+		topics: async.apply(Solr.rebuildTopicIndex)
 	}, function(err, results) {
-		var payload = results.topics.concat(results.users);
-
-		Solr.add(payload, function(err) {
+		Solr.add(results.topics, function(err) {
 			if (!err) {
 				winston.info('[plugins/solr] Re-indexing completed.');
 				Solr.indexStatus.running = false;
@@ -614,22 +610,6 @@ Solr.rebuildTopicIndex = function(callback) {
 				winston.error('[plugins/solr/reindexTopic] Could not insert data into Solr for indexing. Error: ' + err.message);
 			}
 		});
-	});
-};
-
-Solr.rebuildUserIndex = function(callback) {
-	async.waterfall([
-		async.apply(db.getSortedSetRange, 'users:joindate', 0, -1),
-		function(uids, next) {
-			user.getUsersFields(uids, ['uid', 'username', 'userslug', 'deleted'] , next);
-		}
-	], function(err, users) {
-		// Filter out deleted users
-		users = users.filter(function(userObj) {
-			return parseInt(userObj.deleted, 10) !== 1
-		});
-
-		callback(null, []);
 	});
 };
 
