@@ -46,7 +46,8 @@ Solr.init = function(data, callback) {
 				ping: res.locals.ping,
 				enabled: res.locals.enabled,
 				stats: res.locals.stats,
-				csrf: token
+				csrf: token,
+				running: Solr.indexStatus.running
 			});
 		};
 
