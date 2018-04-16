@@ -561,7 +561,25 @@ Solr.rebuildTopicIndex = function(callback) {
 	async.waterfall([
 		async.apply(db.getSortedSetRange, 'topics:tid', 0, -1),
 		function(tids, next) {
-			topics.getTopicsFields(tids, ['tid', 'mainPid', 'title', 'cid', 'uid', 'deleted'], next);
+			var index = 0;
+			var topicsFields = [];
+			async.whilst(function () {
+				return index < tids.length;
+			},
+			function (callback) {
+				var slicedTids = tids.slice(index, index + 1000);
+				topics.getTopicsFields(slicedTids, ['tid', 'mainPid', 'title', 'cid', 'uid', 'deleted'], function (err, results) {
+					if(!err) {
+						index += results.length;
+						topicsFields = topicsFields.concat(results);
+					}
+
+					callback(err);
+				});
+			},
+			function (err) {
+				next(err, topicsFields);
+			});
 		}
 	], function(err, topics) {
 		if (err) {
