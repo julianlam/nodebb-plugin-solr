@@ -279,13 +279,11 @@
 
 		var checkIndexStatus = function(callback) {
 				var barEl = $('.progress.reindex .progress-bar'),
-					modalEl = barEl.parents('.modal'),
-					progress;
+					modalEl = barEl.parents('.modal');
 
 				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(progress) {
-					progress = progress.percentage;
-					if (progress !== -1) {
-						if (progress < 5) {
+					if (progress.percentage !== -1) {
+						if (progress.percentage < 5) {
 							progress.percentage = 5;
 						}
 						updateBar(progress);
