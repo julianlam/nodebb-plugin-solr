@@ -646,22 +646,22 @@ Solr.getIndexProgress = function(req, res) {
 	if (Solr.indexStatus.running) {
 		if(Solr.indexStatus.total > 0) {
 			var progress = (Solr.indexStatus.current / Solr.indexStatus.total).toFixed(4) * 100;
-			res.status(200).send(JSON.stringify({
+			res.status(200).send({
 				percentage: progress,
 				message: Solr.indexStatus.message
-			}));
+			});
 		}
 		else {
-			res.status(200).send(JSON.stringify({
+			res.status(200).send({
 				percentage: 0,
 				message: Solr.indexStatus.message
-			}));
+			});
 		}
 	} else {
-		res.status(200).send(JSON.stringify({
+		res.status(200).send({
 			percentage: -1,
 			message: 'Done'
-		}));
+		});
 	}
 };
 
