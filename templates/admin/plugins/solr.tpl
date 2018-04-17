@@ -230,10 +230,10 @@
 				if (confirm) {
 					bootbox.dialog({
 						title: 'Rebuilding Solr Index...',
-						message: '<div class="progress reindex">' +
-						'<p>Initializing</p>' +
-						'<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"></div>' +
-						'</div>'
+						message: '<div class="reindex"><p>Initializing</p>' +
+						'<div class="progress">' +
+						'<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div>' +
+						'</div></div>'
 					});
 
 					$.ajax({
@@ -281,14 +281,11 @@
 		});
 
 		var checkIndexStatus = function(callback) {
-				var barEl = $('.progress.reindex .progress-bar'),
+				var barEl = $('.reindex .progress .progress-bar'),
 					modalEl = barEl.parents('.modal');
 
 				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(progress) {
 					if (progress.percentage !== -1) {
-						if (progress.percentage < 5) {
-							progress.percentage = 5;
-						}
 						updateBar(progress);
 						setTimeout(function() {
 							checkIndexStatus(callback);
@@ -300,12 +297,19 @@
 				});
 			},
 			updateBar = function(progress) {
-				var barEl = $('.progress.reindex .progress-bar');
-				var messageEl = $('.progress.reindex p');
+				var barEl = $('.reindex .progress .progress-bar');
+				var messageEl = $('.reindex p');
+				var spanEl = barEl.find('span');
 
-				barEl.css('width', progress.percentage + '%');
+				var precentage = progress.percentage;
+				if(percentage < 5) {
+					percentage = 5;
+				}
+
+				barEl.css('width', percentage + '%');
 				barEl.attr('aria-valuenow', progress.percentage.toString());
-				messageEl.text(progress.message + ' - ' + progress.percentage.toFixed(2) + '% Complete');
+				messageEl.text(progress.message);
+				spanEl.text(percentage.toFixed(2) + '% Complete');
 			};
 	});
 </script>
