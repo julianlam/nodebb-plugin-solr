@@ -230,7 +230,7 @@
 				if (confirm) {
 					bootbox.dialog({
 						title: 'Rebuilding Solr Index...',
-						message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div></div>'
+						message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%">Initializing</div></div>'
 					});
 
 					$.ajax({
@@ -283,8 +283,8 @@
 					modalEl = barEl.parents('.modal'),
 					progress;
 
-				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(percentage) {
-					progress = parseFloat(percentage);
+				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(progress) {
+					progress = progress.percentage;
 					if (progress !== -1) {
 						if (progress > 5) { updateBar(progress); }
 						setTimeout(function() {
@@ -296,13 +296,12 @@
 					}
 				});
 			},
-			updateBar = function(percentage) {
-				var barEl = $('.progress.reindex .progress-bar'),
-					spanEl = barEl.find('span');
+			updateBar = function(progress) {
+				var barEl = $('.progress.reindex .progress-bar');
 
-				barEl.css('width', percentage + '%');
-				barEl.attr('aria-valuenow', percentage);
-				spanEl.text(percentage + '% Complete');
+				barEl.css('width', progress.percentage + '%');
+				barEl.attr('aria-valuenow', progress.percentage);
+				barEl.text(progress.message + ' - ' + progress.percentage + '% Complete');
 			};
 	});
 </script>
