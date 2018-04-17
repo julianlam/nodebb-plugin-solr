@@ -230,7 +230,10 @@
 				if (confirm) {
 					bootbox.dialog({
 						title: 'Rebuilding Solr Index...',
-						message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%">Initializing</div></div>'
+						message: '<div class="progress reindex">' +
+						'<p>Initializing</p>' +
+						'<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"></div>' +
+						'</div>'
 					});
 
 					$.ajax({
@@ -298,10 +301,11 @@
 			},
 			updateBar = function(progress) {
 				var barEl = $('.progress.reindex .progress-bar');
+				var messageEl = $('.progress.reindex p');
 
 				barEl.css('width', progress.percentage + '%');
 				barEl.attr('aria-valuenow', progress.percentage.toString());
-				barEl.text(progress.message + ' - ' + progress.percentage + '% Complete');
+				messageEl.text(progress.message + ' - ' + progress.percentage.toFixed(2) + '% Complete');
 			};
 	});
 </script>
