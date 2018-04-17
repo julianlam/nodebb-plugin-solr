@@ -279,14 +279,16 @@
 
 		var checkIndexStatus = function(callback) {
 				var barEl = $('.progress.reindex .progress-bar'),
-					spanEl = barEl.find('span'),
 					modalEl = barEl.parents('.modal'),
 					progress;
 
 				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(progress) {
 					progress = progress.percentage;
 					if (progress !== -1) {
-						if (progress > 5) { updateBar(progress); }
+						if (progress < 5) {
+							progress.percentage = 5;
+						}
+						updateBar(progress);
 						setTimeout(function() {
 							checkIndexStatus(callback);
 						}, 250);
@@ -300,7 +302,7 @@
 				var barEl = $('.progress.reindex .progress-bar');
 
 				barEl.css('width', progress.percentage + '%');
-				barEl.attr('aria-valuenow', progress.percentage);
+				barEl.attr('aria-valuenow', progress.percentage.toString());
 				barEl.text(progress.message + ' - ' + progress.percentage + '% Complete');
 			};
 	});
