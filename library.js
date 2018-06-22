@@ -544,14 +544,18 @@ Solr.rebuildIndex = function(req, res) {
 		},
 		topics: async.apply(Solr.rebuildTopicIndex)
 	}, function(err, results) {
-		Solr.add(results.topics, function(err) {
-			if (!err) {
-				winston.info('[plugins/solr] Re-indexing completed.');
-				Solr.indexStatus.running = false;
-			} else {
-				winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
-			}
-		});
+		if(!err) {
+			Solr.add(results.topics, function (err) {
+				if (!err) {
+					winston.info('[plugins/solr] Re-indexing completed.');
+					Solr.indexStatus.running = false;
+				} else {
+					winston.error('[plugins/solr] Unable to add final data to solr. Error: ' + err.message);
+				}
+			});
+		} else {
+			winston.error('[plugins/solr] Could not retrieve topic listing for indexing. Error: ' + err.message);
+		}
 	});
 };
 
