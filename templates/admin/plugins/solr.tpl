@@ -228,10 +228,7 @@
 		$('button[data-action="rebuild"]').on('click', function() {
 			bootbox.confirm('Rebuild search index?', function(confirm) {
 				if (confirm) {
-					bootbox.dialog({
-						title: 'Rebuilding Solr Index...',
-						message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div></div>'
-					});
+					showRebuildingIndexDialog();
 
 					$.ajax({
 						url: config.relative_path + '/admin/plugins/solr/rebuild',
@@ -240,16 +237,7 @@
 							_csrf: csrf
 						}
 					}).done(function() {
-						checkIndexStatus(function() {
-							ajaxify.refresh();
-
-							app.alert({
-								type: 'success',
-								alert_id: 'solr-rebuilt',
-								title: 'Search index rebuilt',
-								timeout: 2500
-							});
-						});
+						checkIndexStatus(showRebuildingIndexSuccess);
 					}).fail(function() {
 						app.alertError('Solr encountered an error while indexing posts and topics');
 					});
@@ -303,6 +291,27 @@
 				barEl.css('width', percentage + '%');
 				barEl.attr('aria-valuenow', percentage);
 				spanEl.text(percentage + '% Complete');
+			},
+			showRebuildingIndexDialog = function() {
+				bootbox.dialog({
+					title: 'Rebuilding Solr Index...',
+					message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div></div>'
+				});
+			},
+			showRebuildingIndexSuccess = function () {
+				ajaxify.refresh();
+
+				app.alert({
+					type: 'success',
+					alert_id: 'solr-rebuilt',
+					title: 'Search index rebuilt',
+					timeout: 2500
+				});
 			};
+
+		<!-- IF running -->
+		showRebuildingIndexDialog();
+		checkIndexStatus(showRebuildingIndexSuccess);
+		<!-- ENDIF -->
 	});
 </script>
