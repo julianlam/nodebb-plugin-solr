@@ -266,15 +266,12 @@
 		});
 
 		var checkIndexStatus = function(callback) {
-				var barEl = $('.progress.reindex .progress-bar'),
-					spanEl = barEl.find('span'),
-					modalEl = barEl.parents('.modal'),
-					progress;
+				var barEl = $('.reindex .progress .progress-bar'),
+					modalEl = barEl.parents('.modal');
 
-				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(percentage) {
-					progress = parseFloat(percentage);
-					if (progress !== -1) {
-						if (progress > 5) { updateBar(progress); }
+				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(progress) {
+					if (progress.percentage !== -1) {
+						updateBar(progress);
 						setTimeout(function() {
 							checkIndexStatus(callback);
 						}, 250);
@@ -284,18 +281,28 @@
 					}
 				});
 			},
-			updateBar = function(percentage) {
-				var barEl = $('.progress.reindex .progress-bar'),
-					spanEl = barEl.find('span');
+			updateBar = function(progress) {
+				var barEl = $('.reindex .progress .progress-bar');
+				var messageEl = $('.reindex p');
+				var spanEl = barEl.find('span');
+
+				var percentage = progress.percentage;
+				if(percentage < 5) {
+					percentage = 5;
+				}
 
 				barEl.css('width', percentage + '%');
-				barEl.attr('aria-valuenow', percentage);
-				spanEl.text(percentage + '% Complete');
+				barEl.attr('aria-valuenow', progress.percentage.toString());
+				messageEl.text(progress.message);
+				spanEl.text(percentage.toFixed(2) + '% Complete');
 			},
 			showRebuildingIndexDialog = function() {
 				bootbox.dialog({
 					title: 'Rebuilding Solr Index...',
-					message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div></div>'
+					message: '<div class="reindex"><p>Initializing</p>' +
+					'<div class="progress">' +
+					'<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div>' +
+					'</div></div>'
 				});
 			},
 			showRebuildingIndexSuccess = function () {
