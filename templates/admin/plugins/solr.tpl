@@ -18,7 +18,7 @@
 					</p>
 				</div>
 
-				<h3>Client Configuration</h2>
+				<h3>Client Configuration</h3>
 				<form role="form" class="solr-settings">
 					<div class="row">
 						<div class="form-group col-sm-6">
@@ -39,7 +39,7 @@
 						</div>
 					</div>
 
-					<h4>Authentication</h3>
+					<h4>Authentication</h4>
 					<p class="help-block">
 						If your Tomcat/Jetty server is configured with HTTP Basic Authentication, enter its credentials here.
 						Leave it blank otherwise.
@@ -166,7 +166,7 @@
 		'use strict';
 		/* globals $, app, bootbox, config, ajaxify, require, socket */
 
-		var	csrf = '{csrf}' || $('#csrf_token').val();
+		const csrf = '{csrf}' || $('#csrf_token').val();
 
 		// Flush event
 		$('button[data-action="flush"]').on('click', function() {
@@ -265,16 +265,13 @@
 			});
 		});
 
-		var checkIndexStatus = function(callback) {
-				var barEl = $('.progress.reindex .progress-bar'),
-					spanEl = barEl.find('span'),
-					modalEl = barEl.parents('.modal'),
-					progress;
+		const checkIndexStatus = function(callback) {
+				const barEl = $('.reindex .progress .progress-bar'),
+					modalEl = barEl.parents('.modal');
 
-				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(percentage) {
-					progress = parseFloat(percentage);
-					if (progress !== -1) {
-						if (progress > 5) { updateBar(progress); }
+				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(progress) {
+					if (progress.percentage !== -1) {
+						updateBar(progress);
 						setTimeout(function() {
 							checkIndexStatus(callback);
 						}, 250);
@@ -284,18 +281,28 @@
 					}
 				});
 			},
-			updateBar = function(percentage) {
-				var barEl = $('.progress.reindex .progress-bar'),
-					spanEl = barEl.find('span');
+			updateBar = function(progress) {
+				const barEl = $('.reindex .progress .progress-bar');
+				const messageEl = $('.reindex p');
+				const spanEl = barEl.find('span');
+
+				let percentage = progress.percentage;
+				if(percentage < 5) {
+					percentage = 5;
+				}
 
 				barEl.css('width', percentage + '%');
-				barEl.attr('aria-valuenow', percentage);
-				spanEl.text(percentage + '% Complete');
+				barEl.attr('aria-valuenow', progress.percentage.toString());
+				messageEl.text(progress.message);
+				spanEl.text(percentage.toFixed(2) + '% Complete');
 			},
 			showRebuildingIndexDialog = function() {
 				bootbox.dialog({
 					title: 'Rebuilding Solr Index...',
-					message: '<div class="progress reindex"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div></div>'
+					message: '<div class="reindex"><p>Initializing</p>' +
+					'<div class="progress">' +
+					'<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div>' +
+					'</div></div>'
 				});
 			},
 			showRebuildingIndexSuccess = function () {

@@ -13,7 +13,6 @@ const postCache = LRU({ max: 20, maxAge: 1000 * 60 * 20 });	// Remember the last
 
 const topics = module.parent.require('./topics');
 const posts = module.parent.require('./posts');
-const user = module.parent.require('./user');
 const batch = module.parent.require('./batch');
 const utils = require('./lib/utils');
 
@@ -34,6 +33,7 @@ const Solr = {
 		running: false,
 		current: 0,
 		total: 0,
+		message: 'Initializing',
 	},
 };
 
@@ -41,7 +41,7 @@ Solr.init = function (data, callback) {
 	const pluginMiddleware = require('./middleware');
 	const render = function (req, res) {
 		// Regenerate csrf token
-		var token = req.csrfToken();
+		const token = req.csrfToken();
 
 		res.render('admin/plugins/solr', {
 			ping: res.locals.ping,
@@ -76,15 +76,12 @@ Solr.ping = function (callback) {
 };
 
 Solr.checkConflict = function () {
-	if (module.parent.exports.libraries['nodebb-plugin-dbsearch']) {
-		return true;
-	}
-	return false;
+	return !!module.parent.exports.libraries['nodebb-plugin-dbsearch'];
 };
 
 Solr.getNotices = function (notices, callback) {
 	Solr.ping(function (err) {
-		var solrNotices = [
+		const solrNotices = [
 			{ done: !err, doneText: 'Solr connection OK', notDoneText: 'Could not connect to Solr server' },
 			{ done: parseInt(Solr.config.enabled, 10) || false, doneText: 'Solr Indexing Enabled', notDoneText: 'Solr Indexing Disabled' },
 		];
@@ -97,7 +94,7 @@ Solr.getSettings = function (callback) {
 	db.getObject('settings:solr', function (err, config) {
 		Solr.config = {};
 		if (!err) {
-			for (var k in config) {
+			for (const k in config) {
 				if (config.hasOwnProperty(k) && config[k].length && !Solr.config.hasOwnProperty(k)) {
 					Solr.config[k] = config[k];
 				}
@@ -111,7 +108,7 @@ Solr.getSettings = function (callback) {
 };
 
 Solr.getRecordCount = function (callback) {
-	var query = Solr.client.createQuery().q('*:*').start(0).rows(0);
+	const query = Solr.client.createQuery().q('*:*').start(0).rows(0);
 
 	Solr.client.search(query, function (err, obj) {
 		if (!err && obj && obj.response) {
@@ -123,7 +120,7 @@ Solr.getRecordCount = function (callback) {
 };
 
 Solr.getTopicCount = function (callback) {
-	var query = Solr.client.createQuery().q((Solr.config.titleField || 'title_t') + ':*').start(0).rows(0);
+	const query = Solr.client.createQuery().q((Solr.config.titleField || 'title_t') + ':*').start(0).rows(0);
 
 	Solr.client.search(query, function (err, obj) {
 		if (!err && obj && obj.response) {
@@ -167,7 +164,7 @@ Solr.search = function (data, callback) {
 	const term = utils.addFiltersToTerm(data.content, data);
 
 	// Determine which cache to use
-	var cache = isTopic ? titleCache : postCache;
+	const cache = isTopic ? titleCache : postCache;
 
 	if (cache.has(term)) {
 		callback(null, cache.get(term));
@@ -183,7 +180,7 @@ Solr.search = function (data, callback) {
 			if (err) {
 				return callback(err);
 			} else if (obj && obj.response && obj.response.docs.length > 0) {
-				var payload = obj.response.docs.map(function (result) {
+				const payload = obj.response.docs.map(function (result) {
 					return result[field];
 				}).filter(Boolean);
 
@@ -351,8 +348,8 @@ Solr.topic.post = function (data) {
 };
 
 Solr.topic.delete = function (data) {
-	var topicObj = data.topic;
-	var tid = (void 0 === topicObj.tid) ? topicObj : topicObj.tid;
+	const topicObj = data.topic;
+	const tid = (undefined === topicObj.tid) ? topicObj : topicObj.tid;
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
 	}
@@ -363,7 +360,7 @@ Solr.topic.delete = function (data) {
 Solr.topic.restore = Solr.topic.post;
 
 Solr.topic.edit = function (data) {
-	var topicObj = data.topic;
+	const topicObj = data.topic;
 
 	if (!parseInt(Solr.config.enabled, 10)) {
 		return;
@@ -448,7 +445,7 @@ Solr.indexTopic = function (topicObj, callback) {
 		payload = payload.filter(Boolean);
 
 		// Also index the title
-		var titleObj = {
+		const titleObj = {
 			id: 'topic:' + topicObj.tid,	// Just needs to be unique
 			tid_i: topicObj.tid,
 			cid_i: topicObj.cid,
@@ -476,10 +473,10 @@ Solr.deindexTopic = function (tid, callback) {
 			return callback(err);
 		}
 
-		var commands = [
+		const commands = [
 			async.apply(Solr.remove, 'topic:' + tid),
 		];
-		for (var x = 0, numPids = pids.length; x < numPids; x++) {
+		for (let x = 0, numPids = pids.length; x < numPids; x++) {
 			commands.push(async.apply(Solr.remove, 'post:' + pids[x]));
 		}
 		commands.push(async.apply(Solr.commit));
@@ -507,7 +504,7 @@ Solr.indexPost = function (postData, callback) {
 		return;
 	}
 
-	var payload = {
+	const payload = {
 		id: 'post:' + postData.pid,	// Just needs to be unique
 		pid_i: postData.pid,
 		tid_i: postData.tid,
@@ -536,6 +533,7 @@ Solr.rebuildIndex = function (req, res) {
 
 	Solr.indexStatus.running = true;
 	Solr.indexStatus.current = 0;
+	Solr.indexStatus.message = 'Initializing';
 
 	async.series({
 		total: function (next) {
@@ -556,6 +554,7 @@ Solr.rebuildIndex = function (req, res) {
 			Solr.add(results.topics, function (err) {
 				if (!err) {
 					winston.info('[plugins/solr] Re-indexing completed.');
+					Solr.indexStatus.message = 'Indexing finished';
 					Solr.indexStatus.running = false;
 				} else {
 					winston.error('[plugins/solr] Unable to add final data to solr. Error: ' + err.message);
@@ -568,13 +567,20 @@ Solr.rebuildIndex = function (req, res) {
 };
 
 Solr.rebuildTopicIndex = function (callback) {
+	Solr.indexStatus.message = 'Collecting topic metadata';
+
 	async.waterfall([
-		function (next) {
-			var topicsFields = [];
+		async.apply(db.sortedSetCount, 'topics:tid', '-inf', '+inf'),
+		function (topicsCount, next) {
+			let topicsFields = [];
+			let metadataCollected = 0;
+			Solr.indexStatus.message = 'Collecting topic metadata 0 / ' + topicsCount;
 			batch.processSortedSet('topics:tid', function (tids, callback) {
 				topics.getTopicsFields(tids, ['tid', 'mainPid', 'title', 'cid', 'uid', 'deleted'], function (err, results) {
 					if (!err) {
 						topicsFields = topicsFields.concat(results);
+						metadataCollected += results.length;
+						Solr.indexStatus.message = 'Collecting topic metadata ' + metadataCollected + ' / ' + topicsCount;
 					}
 
 					callback(err);
@@ -588,13 +594,15 @@ Solr.rebuildTopicIndex = function (callback) {
 			});
 		},
 		function (topics, next) {
-			var indexedTopicCount = 0;
+			Solr.indexStatus.message = 'Indexed topics 0 / ' + topics.length;
+
+			let indexedTopicCount = 0;
 			async.whilst(
 				function () {
 					return indexedTopicCount < topics.length;
 				},
 				function (callback) {
-					var indexingTopics = topics.slice(indexedTopicCount, indexedTopicCount + 1000);
+					const indexingTopics = topics.slice(indexedTopicCount, indexedTopicCount + 1000);
 					async.mapLimit(indexingTopics, 100, Solr.indexTopic, function (err, topicPayloads) {
 						if (err) {
 							winston.error('[plugins/solr/reindexTopic] Could not retrieve topic content for indexing. Error: ' + err.message);
@@ -602,7 +610,7 @@ Solr.rebuildTopicIndex = function (callback) {
 						}
 
 						// Normalise and validate the entries before they're added to Solr
-						var payload = topicPayloads.reduce(function (currentPayload, topics) {
+						const payload = topicPayloads.reduce(function (currentPayload, topics) {
 							if (Array.isArray(topics)) {
 								return currentPayload.concat(topics);
 							}
@@ -613,10 +621,11 @@ Solr.rebuildTopicIndex = function (callback) {
 						});
 
 						indexedTopicCount += indexingTopics.length;
+						Solr.indexStatus.message = 'Indexed topics ' + indexedTopicCount + ' / ' + topics.length;
 
 						Solr.add(payload, function (err) {
 							if (!err) {
-								var progressPercent = (100 * indexedTopicCount / topics.length).toFixed(2);
+								const progressPercent = (100 * indexedTopicCount / topics.length).toFixed(2);
 								winston.info('[plugins/solr/reindexTopic] Partial re-indexing completed: ' + progressPercent + '%');
 							}
 
@@ -641,13 +650,22 @@ Solr.rebuildTopicIndex = function (callback) {
 Solr.getIndexProgress = function (req, res) {
 	if (Solr.indexStatus.running) {
 		if (Solr.indexStatus.total > 0) {
-			var progress = (Solr.indexStatus.current / Solr.indexStatus.total).toFixed(4) * 100;
-			res.status(200).send(progress.toString());
+			const progress = (Solr.indexStatus.current / Solr.indexStatus.total).toFixed(4) * 100;
+			res.status(200).send({
+				percentage: progress,
+				message: Solr.indexStatus.message,
+			});
 		} else {
-			res.status(200).send('0');
+			res.status(200).send({
+				percentage: 0,
+				message: Solr.indexStatus.message,
+			});
 		}
 	} else {
-		res.status(200).send('-1');
+		res.status(200).send({
+			percentage: -1,
+			message: 'Done',
+		});
 	}
 };
 
