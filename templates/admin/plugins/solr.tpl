@@ -228,13 +228,7 @@
 		$('button[data-action="rebuild"]').on('click', function() {
 			bootbox.confirm('Rebuild search index?', function(confirm) {
 				if (confirm) {
-					bootbox.dialog({
-						title: 'Rebuilding Solr Index...',
-						message: '<div class="reindex"><p>Initializing</p>' +
-						'<div class="progress">' +
-						'<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div>' +
-						'</div></div>'
-					});
+					showRebuildingIndexDialog();
 
 					$.ajax({
 						url: config.relative_path + '/admin/plugins/solr/rebuild',
@@ -243,16 +237,7 @@
 							_csrf: csrf
 						}
 					}).done(function() {
-						checkIndexStatus(function() {
-							ajaxify.refresh();
-
-							app.alert({
-								type: 'success',
-								alert_id: 'solr-rebuilt',
-								title: 'Search index rebuilt',
-								timeout: 2500
-							});
-						});
+						checkIndexStatus(showRebuildingIndexSuccess);
 					}).fail(function() {
 						app.alertError('Solr encountered an error while indexing posts and topics');
 					});
@@ -301,7 +286,7 @@
 				var messageEl = $('.reindex p');
 				var spanEl = barEl.find('span');
 
-				var precentage = progress.percentage;
+				var percentage = progress.percentage;
 				if(percentage < 5) {
 					percentage = 5;
 				}
@@ -310,6 +295,30 @@
 				barEl.attr('aria-valuenow', progress.percentage.toString());
 				messageEl.text(progress.message);
 				spanEl.text(percentage.toFixed(2) + '% Complete');
+			},
+			showRebuildingIndexDialog = function() {
+				bootbox.dialog({
+					title: 'Rebuilding Solr Index...',
+					message: '<div class="reindex"><p>Initializing</p>' +
+					'<div class="progress">' +
+					'<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100" style="width: 5%"><span class="sr-only">5% Complete</span></div>' +
+					'</div></div>'
+				});
+			},
+			showRebuildingIndexSuccess = function () {
+				ajaxify.refresh();
+
+				app.alert({
+					type: 'success',
+					alert_id: 'solr-rebuilt',
+					title: 'Search index rebuilt',
+					timeout: 2500
+				});
 			};
+
+		<!-- IF running -->
+		showRebuildingIndexDialog();
+		checkIndexStatus(showRebuildingIndexSuccess);
+		<!-- ENDIF -->
 	});
 </script>
