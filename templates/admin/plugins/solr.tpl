@@ -18,7 +18,7 @@
 					</p>
 				</div>
 
-				<h3>Client Configuration</h2>
+				<h3>Client Configuration</h3>
 				<form role="form" class="solr-settings">
 					<div class="row">
 						<div class="form-group col-sm-6">
@@ -39,7 +39,7 @@
 						</div>
 					</div>
 
-					<h4>Authentication</h3>
+					<h4>Authentication</h4>
 					<p class="help-block">
 						If your Tomcat/Jetty server is configured with HTTP Basic Authentication, enter its credentials here.
 						Leave it blank otherwise.
@@ -166,7 +166,7 @@
 		'use strict';
 		/* globals $, app, bootbox, config, ajaxify, require, socket */
 
-		var	csrf = '{csrf}' || $('#csrf_token').val();
+		const csrf = '{csrf}' || $('#csrf_token').val();
 
 		// Flush event
 		$('button[data-action="flush"]').on('click', function() {
@@ -265,8 +265,8 @@
 			});
 		});
 
-		var checkIndexStatus = function(callback) {
-				var barEl = $('.reindex .progress .progress-bar'),
+		const checkIndexStatus = function(callback) {
+				const barEl = $('.reindex .progress .progress-bar'),
 					modalEl = barEl.parents('.modal');
 
 				$.get(config.relative_path + '/admin/plugins/solr/rebuildProgress').done(function(progress) {
@@ -282,11 +282,11 @@
 				});
 			},
 			updateBar = function(progress) {
-				var barEl = $('.reindex .progress .progress-bar');
-				var messageEl = $('.reindex p');
-				var spanEl = barEl.find('span');
+				const barEl = $('.reindex .progress .progress-bar');
+				const messageEl = $('.reindex p');
+				const spanEl = barEl.find('span');
 
-				var percentage = progress.percentage;
+				let percentage = progress.percentage;
 				if(percentage < 5) {
 					percentage = 5;
 				}
