@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-solr",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "Full-text searching for NodeBB using Apache Solr",
   "main": "library.js",
   "repository": {
@@ -32,6 +32,6 @@
     "eslint-plugin-import": "^2.8.0"
   },
   "nbbpm": {
-    "compatibility": "^1.5.0"
+    "compatibility": "^1.11.0"
   }
 }
