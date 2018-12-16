@@ -1,7 +1,7 @@
 'use strict';
 
 const Solr = module.parent.exports;
-const async = require.main.require('async');
+const async = require('async');
 
 const Middleware = {};
 

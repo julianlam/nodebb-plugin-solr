@@ -23,8 +23,9 @@
   },
   "readmeFilename": "README.md",
   "dependencies": {
-    "solr-client": "^0.7.0",
-    "lru-cache": "^4.1.2"
+    "async": "^2.6.1",
+    "lru-cache": "^4.1.2",
+    "solr-client": "^0.7.0"
   },
   "devDependencies": {
     "eslint": "^4.10.0",

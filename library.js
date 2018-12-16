@@ -5,7 +5,7 @@
 const db = require.main.require('./src/database');
 const winston = require.main.require('winston');
 const engine = require('solr-client');
-const async = require.main.require('async');
+const async = require('async');
 
 const LRU = require('lru-cache');
 const titleCache = LRU({ max: 20, maxAge: 1000 * 60 * 20 });	// Remember the last 20 searches in the past twenty minutes
