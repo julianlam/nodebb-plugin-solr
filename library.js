@@ -2,18 +2,18 @@
 
 /* globals module, require */
 
-const db = module.parent.require('./database');
-const winston = module.parent.require('winston');
+const db = require.main.require('./src/database');
+const winston = require.main.require('winston');
 const engine = require('solr-client');
-const async = module.parent.require('async');
+const async = require.main.require('async');
 
 const LRU = require('lru-cache');
 const titleCache = LRU({ max: 20, maxAge: 1000 * 60 * 20 });	// Remember the last 20 searches in the past twenty minutes
 const postCache = LRU({ max: 20, maxAge: 1000 * 60 * 20 });	// Remember the last 20 searches in the past twenty minutes
 
-const topics = module.parent.require('./topics');
-const posts = module.parent.require('./posts');
-const batch = module.parent.require('./batch');
+const topics = require.main.require('./src/topics');
+const posts = require.main.require('./src/posts');
+const batch = require.main.require('./src/batch');
 const utils = require('./lib/utils');
 
 const Solr = {
