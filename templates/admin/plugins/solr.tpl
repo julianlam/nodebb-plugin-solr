@@ -29,6 +29,10 @@
 							<label for="port">Port</label>
 							<input class="form-control" type="text" name="port" id="port" placeholder="8983" />
 						</div>
+							<div class="form-group col-sm-6">
+							<label for="port">Secure</label>
+							<input class="form-control" type="checkbox" name="secure" id="secure">
+						</div>
 						<div class="form-group col-sm-6">
 							<label for="path">Path</label>
 							<input class="form-control" type="text" name="path" id="path" placeholder="/solr" />
