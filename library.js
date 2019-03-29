@@ -25,7 +25,8 @@ const Solr = {
 		path: '/solr'
 		enabled: undefined (false)
 		titleField: 'title_t'
-		contentField: 'description_t'
+		contentField: 'description_t',
+		secure: false
 	*/
 	config: {},	// default is localhost:8983, '' core, '/solr' path
 	client: undefined,
@@ -134,6 +135,11 @@ Solr.getTopicCount = function (callback) {
 Solr.connect = function () {
 	if (Solr.client) {
 		delete Solr.client;
+	}
+
+	Solr.config = {
+		...Solr.config,
+		secure: Solr.config.secure && Solr.config.secure === 'on'
 	}
 
 	Solr.client = engine.createClient(Solr.config);
