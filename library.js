@@ -185,7 +185,7 @@ Solr.search = function (data, callback) {
 		Solr.ping(function(err) {
 			if (err) {
 				// Stop use search engine when connection failed
-				winston.error('[plugins/solr] Could not connect to Solr server' );
+				winston.warn('[plugins/solr] Could not connect to Solr server' );
 				callback(null, data)
 			} else {
 				Solr.client.search(query, function(err, obj) {
