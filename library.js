@@ -182,23 +182,31 @@ Solr.search = function (data, callback) {
 
 		const query = Solr.client.createQuery().q(term).edismax().qf(fields).start(0).rows(500);
 
-		Solr.client.search(query, function (err, obj) {
+		Solr.ping(function(err) {
 			if (err) {
-				return callback(err);
-			} else if (obj && obj.response && obj.response.docs.length > 0) {
-				const payload = obj.response.docs.map(function (result) {
-					return result[field];
-				}).filter(Boolean);
-
-				callback(null, payload);
-				cache.set(term, payload);
+				// Stop use search engine when connection failed
+				winston.warn('[plugins/solr] Could not connect to Solr server' );
+				callback(null, data)
 			} else {
-				callback(null, []);
-				cache.set(term, []);
+				Solr.client.search(query, function(err, obj) {
+					if (err) {
+						return callback(err);
+					} else if (obj && obj.response && obj.response.docs.length > 0) {
+						const payload = obj.response.docs.map(function (result) {
+							return result[field];
+						}).filter(Boolean);
+		
+						callback(null, payload);
+						cache.set(term, payload);
+					} else {
+						callback(null, []);
+						cache.set(term, []);
+					}
+		
+					winston.verbose('[plugin/solr] Search (' + data.index + ') for "' + data.content + '" returned ' + obj.response.docs.length + ' results');
+				})
 			}
-
-			winston.verbose('[plugin/solr] Search (' + data.index + ') for "' + data.content + '" returned ' + obj.response.docs.length + ' results');
-		});
+		})
 	}
 };
 
