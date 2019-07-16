@@ -139,8 +139,8 @@ Solr.connect = function () {
 
 	Solr.config = {
 		...Solr.config,
-		secure: Solr.config.secure && Solr.config.secure === 'on'
-	}
+		secure: Solr.config.secure && Solr.config.secure === 'on',
+	};
 
 	Solr.client = engine.createClient(Solr.config);
 
@@ -180,33 +180,38 @@ Solr.search = function (data, callback) {
 		// Populate Fields
 		if (isTopic) { fields[Solr.config.titleField || 'title_t'] = 1; } else { fields[Solr.config.contentField || 'description_t'] = 1; }
 
-		const query = Solr.client.createQuery().q(term).edismax().qf(fields).start(0).rows(500);
+		const query = Solr.client.createQuery()
+			.q(term)
+			.edismax()
+			.qf(fields)
+			.start(0)
+			.rows(500);
 
-		Solr.ping(function(err) {
+		Solr.ping(function (err) {
 			if (err) {
 				// Stop use search engine when connection failed
-				winston.warn('[plugins/solr] Could not connect to Solr server' );
-				callback(null, data)
+				winston.warn('[plugins/solr] Could not connect to Solr server');
+				callback(null, data);
 			} else {
-				Solr.client.search(query, function(err, obj) {
+				Solr.client.search(query, function (err, obj) {
 					if (err) {
 						return callback(err);
 					} else if (obj && obj.response && obj.response.docs.length > 0) {
 						const payload = obj.response.docs.map(function (result) {
 							return result[field];
 						}).filter(Boolean);
-		
+
 						callback(null, payload);
 						cache.set(term, payload);
 					} else {
 						callback(null, []);
 						cache.set(term, []);
 					}
-		
+
 					winston.verbose('[plugin/solr] Search (' + data.index + ') for "' + data.content + '" returned ' + obj.response.docs.length + ' results');
-				})
+				});
 			}
-		})
+		});
 	}
 };
 
