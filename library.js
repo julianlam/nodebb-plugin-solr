@@ -193,6 +193,10 @@ Solr.search = function (data, callback) {
 				winston.warn('[plugins/solr] Could not connect to Solr server');
 				callback(null, data);
 			} else {
+
+				// Working around: https://github.com/lbdremy/solr-node-client/issues/197
+				query.parameters = query.parameters.map(param => param.replace('^1', '%5E1'));
+
 				Solr.client.search(query, function (err, obj) {
 					if (err) {
 						return callback(err);
