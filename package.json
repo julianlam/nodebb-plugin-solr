@@ -24,7 +24,7 @@
   "readmeFilename": "README.md",
   "dependencies": {
     "async": "^2.6.1",
-    "lru-cache": "^5.1.1",
+    "lru-cache": "^4.1.5",
     "solr-client": "^0.7.1"
   },
   "devDependencies": {
