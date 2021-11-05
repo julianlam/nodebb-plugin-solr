@@ -173,7 +173,8 @@ Solr.search = function (data, callback) {
 	const cache = isTopic ? titleCache : postCache;
 
 	if (cache.has(term)) {
-		callback(null, cache.get(term));
+		data.ids = data.ids.concat(cache.get(term));
+		callback(null, data);
 	} else {
 		const fields = {};
 
@@ -201,14 +202,14 @@ Solr.search = function (data, callback) {
 					if (err) {
 						return callback(err);
 					} else if (obj && obj.response && obj.response.docs.length > 0) {
-						const payload = obj.response.docs.map(function (result) {
+						const ids = obj.response.docs.map(function (result) {
 							return result[field];
 						}).filter(Boolean);
-
-						callback(null, payload);
-						cache.set(term, payload);
+						data.ids = data.ids.concat(ids);
+						callback(null, data);
+						cache.set(term, ids);
 					} else {
-						callback(null, []);
+						callback(null, data);
 						cache.set(term, []);
 					}
 
@@ -224,7 +225,7 @@ Solr.searchTopic = function (data, callback) {
 	const term = data.term;
 
 	if (!term || !term.length) {
-		return callback(null, []);
+		return callback(null, data);
 	}
 
 	const fields = {};
@@ -239,9 +240,10 @@ Solr.searchTopic = function (data, callback) {
 		if (err) {
 			callback(err);
 		} else if (obj && obj.response && obj.response.docs.length > 0) {
-			callback(null, obj.response.docs.map(function (result) {
+			data.ids = data.ids.concat(obj.response.docs.map(function (result) {
 				return result.pid_i;
-			}));
+			}))
+			callback(null, data);
 		} else {
 			callback(null, []);
 		}
