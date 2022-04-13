@@ -24,7 +24,7 @@
   "readmeFilename": "README.md",
   "dependencies": {
     "@commitlint/cli": "^9.1.2",
-    "async": "^2",
+    "async": "^3",
     "eslint": "^7.7.0",
     "lru-cache": "^4.1.5",
     "solr-client": "^0.10.0-rc8"
